@@ -1,0 +1,202 @@
+{% extends "crm_base.html" %}
+{% load static %}
+
+{% block title %}Daily Activity Log — ROLF Sales CRM{% endblock %}
+
+{% block content %}
+<div class="content-container" style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+
+  <!-- Header & Control Bar -->
+  <div class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.35rem; font-weight: 700; color: var(--text);">Daily Activity Log</h2>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--muted);">Log every phone call, WhatsApp message, meeting, sample dispatch, and customer visit</p>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <button onclick="document.getElementById('logActivityModal').style.display='flex'" class="primary-button" style="padding: 0.45rem 1rem; font-size: 0.85rem;">+ Log New Activity</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="card" style="margin-bottom: 1.5rem; padding: 1rem;">
+    <form method="get" action="" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+      <input type="text" name="q" value="{{ query }}" placeholder="Search notes, company, contact person..." class="input-field" style="min-width: 220px; flex: 1; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+
+      <select name="salesperson" class="input-field" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
+        <option value="">All Sales Reps</option>
+        {% for u in sales_users %}
+          <option value="{{ u.id }}" {% if selected_sp == u.id %}selected{% endif %}>{{ u.username }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="ghost-button" style="padding: 0.4rem 0.9rem; font-size: 0.85rem;">Filter</button>
+      <a href="/crm/interactions/" class="ghost-button" style="padding: 0.4rem 0.9rem; font-size: 0.85rem; text-decoration: none;">Reset</a>
+    </form>
+  </div>
+
+  <!-- Activity Timeline Table -->
+  <div class="card" style="padding: 1.25rem;">
+    <div style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%; font-size: 0.85rem;">
+        <thead>
+          <tr>
+            <th>Date & Time</th>
+            <th>Sales Rep</th>
+            <th>Account / Company</th>
+            <th>Target Type</th>
+            <th>Activity Type</th>
+            <th>Contact Person</th>
+            <th>Outcome</th>
+            <th>Summary / Discussion Notes</th>
+            <th>Next Step</th>
+            <th>Next Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in interactions %}
+          <tr>
+            <td style="font-weight: 600; white-space: nowrap;">{{ item.created_at|date:"Y-m-d H:i" }}</td>
+            <td style="font-weight: 600;">{{ item.author.username|default:"System" }}</td>
+            <td style="font-weight: 700; color: var(--accent-strong);">
+              {% if item.lead %}
+                {{ item.lead.company_name }} <small style="color: var(--muted); font-weight: normal;">({{ item.lead.lead_code }})</small>
+              {% elif item.client %}
+                {{ item.client.company_name }} <small style="color: var(--muted); font-weight: normal;">({{ item.client.client_code }})</small>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if item.lead %}
+                <span style="font-size: 0.72rem; padding: 0.15rem 0.4rem; background: var(--surface); border: 1px solid var(--line); border-radius: 4px;">Prospect Lead</span>
+              {% elif item.client %}
+                <span style="font-size: 0.72rem; padding: 0.15rem 0.4rem; background: var(--surface); border: 1px solid var(--line); border-radius: 4px;">Active Client</span>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              <span class="tag-chip" style="font-size: 0.75rem; font-weight: 600;">{{ item.activity_type }}</span>
+            </td>
+            <td>
+              {% if item.contact_person %}
+                {{ item.contact_person }}
+              {% elif item.lead %}
+                {{ item.lead.contact_name }}
+              {% elif item.client %}
+                {{ item.client.contact_name }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              <span style="font-size: 0.75rem; font-weight: 700; color: {% if item.outcome == 'Positive' %}#10b981{% elif item.outcome == 'Negative' %}#ef4444{% else %}var(--muted){% endif %};">
+                {{ item.outcome }}
+              </span>
+            </td>
+            <td style="max-width: 320px; white-space: pre-wrap; line-height: 1.4;">{{ item.notes }}</td>
+            <td>{{ item.next_step|default:"-" }}</td>
+            <td style="white-space: nowrap;">{{ item.next_step_date|date:"Y-m-d"|default:"-" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="10" style="text-align: center; color: var(--muted); padding: 2.5rem;">No activities logged yet. Click "+ Log New Activity" to log customer interactions.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Log Activity Modal -->
+<div id="logActivityModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 1rem;">
+  <div class="card" style="width: 100%; max-width: 600px; padding: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Log Daily Activity</h3>
+      <button onclick="document.getElementById('logActivityModal').style.display='none'" class="ghost-button" style="padding: 0.2rem 0.5rem;">&times;</button>
+    </div>
+
+    <form method="post" action="/crm/interactions/">
+      {% csrf_token %}
+      <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+        
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Target Prospect / Client Account *</label>
+          <select name="target_id" required class="input-field" style="width: 100%; margin-top: 0.2rem;">
+            <optgroup label="Prospect Leads">
+              {% for lead in all_leads %}
+                <option value="lead_{{ lead.id }}">Prospect: {{ lead.lead_code }} — {{ lead.company_name }} ({{ lead.city }}, {{ lead.country }})</option>
+              {% endfor %}
+            </optgroup>
+            <optgroup label="Active Clients">
+              {% for client in all_clients %}
+                <option value="client_{{ client.id }}">Client: {{ client.client_code }} — {{ client.company_name }} ({{ client.city }}, {{ client.country }})</option>
+              {% endfor %}
+            </optgroup>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600;">Activity Type *</label>
+            <select name="activity_type" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+              <option value="Call">Call</option>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Email">Email</option>
+              <option value="Meeting">Meeting</option>
+              <option value="Visit">Visit</option>
+              <option value="Offer Sent">Offer Sent</option>
+              <option value="Samples Sent">Samples Sent</option>
+              <option value="Order Received">Order Received</option>
+              <option value="Payment Follow-up">Payment Follow-up</option>
+              <option value="Note">Note</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600;">Outcome *</label>
+            <select name="outcome" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+              <option value="Positive">Positive</option>
+              <option value="Neutral">Neutral</option>
+              <option value="Negative">Negative</option>
+              <option value="No answer">No answer</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Contact Person</label>
+          <input type="text" name="contact_person" placeholder="Person spoken with" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Summary / Discussion Notes *</label>
+          <textarea name="notes" required rows="4" placeholder="What was discussed, samples status, feedback, order details..." class="input-field" style="width: 100%; margin-top: 0.2rem;"></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600;">Next Step</label>
+            <input type="text" name="next_step" placeholder="e.g. Call for feedback" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+          </div>
+
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600;">Next Step Date</label>
+            <input type="date" name="next_step_date" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+          </div>
+        </div>
+
+      </div>
+
+      <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button type="button" onclick="document.getElementById('logActivityModal').style.display='none'" class="ghost-button">Cancel</button>
+        <button type="submit" class="primary-button">Save Activity</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

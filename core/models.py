@@ -130,35 +130,226 @@ class Notification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 class Lead(models.Model):
-    STAGE_CHOICES = (
+    STATUS_CHOICES = (
         ('New', 'New'),
-        ('Qualified', 'Qualified'),
-        ('Proposition', 'Proposition'),
+        ('Contacted', 'Contacted'),
+        ('Interested', 'Interested'),
+        ('Samples Sent', 'Samples Sent'),
+        ('Offer Sent', 'Offer Sent'),
+        ('Negotiation', 'Negotiation'),
         ('Won', 'Won'),
+        ('Lost', 'Lost'),
+        ('On Hold', 'On Hold'),
+        # Backward compatibility aliases
+        ('Suspect', 'Suspect (New)'),
+        ('Prospect', 'Prospect (Contacted)'),
+        ('Approach', 'Approach (Interested)'),
+        ('Closing', 'Closing (Negotiation)'),
+        ('Order', 'Order (Won)'),
+        ('PostSale', 'Post-Sale'),
     )
 
+    PRIORITY_CHOICES = (
+        ('Hot', 'Hot'),
+        ('Warm', 'Warm'),
+        ('Cold', 'Cold'),
+    )
+
+    SEGMENT_CHOICES = (
+        ('Distributor', 'Distributor'),
+        ('Wholesaler', 'Wholesaler'),
+        ('Retailer / Shop', 'Retailer / Shop'),
+        ('Workshop / Service', 'Workshop / Service'),
+        ('Fleet / Transport', 'Fleet / Transport'),
+        ('Industrial', 'Industrial'),
+        ('Marketplace', 'Marketplace'),
+        ('Other', 'Other'),
+    )
+
+    lead_code = models.CharField(max_length=20, blank=True, null=True, verbose_name="Lead ID Code")
+    date_added = models.DateField(default=timezone.now, verbose_name="Date Added")
     salesperson = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="leads")
-    contact_name = models.CharField(max_length=255, verbose_name="Contact Name")
-    opportunity_name = models.CharField(max_length=255, verbose_name="Opportunity Name")
-    contact_email = models.EmailField(blank=True, null=True, verbose_name="Contact Email")
-    contact_phone = models.CharField(max_length=50, blank=True, null=True, verbose_name="Contact Phone")
-    revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Revenue (AED)")
-    stage = models.CharField(max_length=20, choices=STAGE_CHOICES, default='New')
+    country = models.CharField(max_length=100, default="Saudi Arabia", verbose_name="Country")
+    city = models.CharField(max_length=100, default="Riyadh", verbose_name="City")
+    company_name = models.CharField(max_length=255, default="Unspecified Company", blank=True, verbose_name="Company / Account Name")
+    segment = models.CharField(max_length=100, choices=SEGMENT_CHOICES, default="Distributor", verbose_name="Segment")
+    contact_name = models.CharField(max_length=255, verbose_name="Contact Person")
+    position = models.CharField(max_length=100, blank=True, null=True, verbose_name="Position")
+    contact_phone = models.CharField(max_length=50, blank=True, null=True, verbose_name="Phone")
+    contact_email = models.EmailField(blank=True, null=True, verbose_name="Email")
+    whatsapp = models.CharField(max_length=50, blank=True, null=True, verbose_name="WhatsApp")
+    source = models.CharField(max_length=100, blank=True, default="Exhibition", verbose_name="Lead Source")
+    products_of_interest = models.TextField(blank=True, null=True, verbose_name="Products of Interest")
+    
+    opportunity_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Opportunity Name")
+    revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Est. Deal Value (USD)")
+    stage = models.CharField(max_length=30, choices=STATUS_CHOICES, default='New', verbose_name="Status")
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='Hot', verbose_name="Priority")
+    rating = models.IntegerField(default=3, verbose_name="Rating (1-5)")
+    
+    last_contact_date = models.DateField(null=True, blank=True, verbose_name="Last Contact Date")
+    next_action = models.CharField(max_length=255, blank=True, null=True, verbose_name="Next Action")
+    next_action_date = models.DateField(null=True, blank=True, verbose_name="Next Action Date")
+    
+    est_volume_liters = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Est. Volume (L/month)")
+    comments = models.TextField(blank=True, null=True, verbose_name="Comments / Notes")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    # New Fields for Analytics
     product = models.ForeignKey('Product', on_delete=models.SET_NULL, null=True, blank=True, related_name="leads")
     quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     won_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.opportunity_name} - {self.contact_name}"
+        code_prefix = f"[{self.lead_code}] " if self.lead_code else ""
+        return f"{code_prefix}{self.company_name} - {self.contact_name}"
+
+    @property
+    def days_since_contact(self):
+        if self.last_contact_date:
+            return (timezone.now().date() - self.last_contact_date).days
+        return None
+
+    @property
+    def followup_status(self):
+        if not self.next_action_date:
+            return 'None'
+        today = timezone.now().date()
+        if self.next_action_date < today and self.stage not in ['Won', 'Lost']:
+            return 'Overdue'
+        elif self.next_action_date == today:
+            return 'Today'
+        return 'Upcoming'
 
     def save(self, *args, **kwargs):
-        if self.stage == 'Won':
+        if not self.opportunity_name:
+            self.opportunity_name = f"{self.company_name} Deal"
+        if not self.lead_code:
+            last_lead = Lead.objects.exclude(lead_code__isnull=True).order_by('-id').first()
+            new_id = (last_lead.id + 1) if last_lead else 1
+            self.lead_code = f"L-{new_id:04d}"
+        if self.stage in ['Order', 'Won']:
             if not self.won_at:
                 self.won_at = timezone.now()
         else:
             self.won_at = None
         super().save(*args, **kwargs)
+
+
+class Client(models.Model):
+    CLIENT_STATUS_CHOICES = (
+        ('Active', 'Active'),
+        ('At Risk', 'At Risk'),
+        ('Inactive', 'Inactive'),
+        ('Suspended', 'Suspended'),
+    )
+
+    PAYMENT_TERMS_CHOICES = (
+        ('Prepayment', 'Prepayment'),
+        ('Cash on delivery', 'Cash on delivery'),
+        ('Net 15', 'Net 15'),
+        ('Net 30', 'Net 30'),
+        ('Net 45', 'Net 45'),
+        ('Net 60', 'Net 60'),
+        ('Letter of credit', 'Letter of credit'),
+    )
+
+    client_code = models.CharField(max_length=20, unique=True, verbose_name="Client ID Code")
+    country = models.CharField(max_length=100, default="United Arab Emirates", verbose_name="Country")
+    city = models.CharField(max_length=100, default="Sharjah", verbose_name="City")
+    company_name = models.CharField(max_length=255, verbose_name="Company Name")
+    segment = models.CharField(max_length=100, default="Retailer / Shop", verbose_name="Segment")
+    contact_name = models.CharField(max_length=255, verbose_name="Contact Person")
+    position = models.CharField(max_length=100, blank=True, null=True, verbose_name="Position")
+    phone = models.CharField(max_length=50, blank=True, null=True, verbose_name="Phone")
+    email = models.EmailField(blank=True, null=True, verbose_name="Email")
+    whatsapp = models.CharField(max_length=50, blank=True, null=True, verbose_name="WhatsApp")
+    account_manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="clients", verbose_name="Account Manager")
+    
+    client_since = models.DateField(null=True, blank=True, verbose_name="Client Since")
+    contract_no = models.CharField(max_length=100, blank=True, null=True, verbose_name="Contract No.")
+    payment_terms = models.CharField(max_length=50, choices=PAYMENT_TERMS_CHOICES, default="Net 30", verbose_name="Payment Terms")
+    credit_limit = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Credit Limit (USD)")
+    
+    last_order_date = models.DateField(null=True, blank=True, verbose_name="Last Order Date")
+    last_order_value = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Last Order Value (USD)")
+    sales_ytd = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Sales YTD (USD)")
+    avg_volume_liters = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Avg Volume (L/month)")
+    
+    status = models.CharField(max_length=30, choices=CLIENT_STATUS_CHOICES, default='Active', verbose_name="Client Status")
+    next_followup_date = models.DateField(null=True, blank=True, verbose_name="Next Follow-up Date")
+    notes = models.TextField(blank=True, null=True, verbose_name="Notes")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"[{self.client_code}] {self.company_name}"
+
+    @property
+    def days_since_last_order(self):
+        if self.last_order_date:
+            return (timezone.now().date() - self.last_order_date).days
+        return None
+
+    @property
+    def alert_status(self):
+        if self.status == 'At Risk':
+            return 'At Risk'
+        if self.next_followup_date and self.next_followup_date < timezone.now().date():
+            return 'Overdue Follow-up'
+        if self.days_since_last_order and self.days_since_last_order > 60:
+            return 'Overdue Order'
+        return 'OK'
+
+    def save(self, *args, **kwargs):
+        if not self.client_code:
+            last_client = Client.objects.order_by('-id').first()
+            new_id = (last_client.id + 1) if last_client else 1
+            self.client_code = f"C-{new_id:04d}"
+        super().save(*args, **kwargs)
+
+
+class LeadInteraction(models.Model):
+    INTERACTION_TYPES = (
+        ('Call', 'Phone Call'),
+        ('WhatsApp', 'WhatsApp Message'),
+        ('Email', 'Email Correspondence'),
+        ('Meeting', 'Client Meeting'),
+        ('Visit', 'On-site Visit'),
+        ('Offer Sent', 'Offer Sent'),
+        ('Samples Sent', 'Samples Sent'),
+        ('Order Received', 'Order Received'),
+        ('Payment Follow-up', 'Payment Follow-up'),
+        ('Note', 'General Note'),
+    )
+
+    OUTCOME_CHOICES = (
+        ('Positive', 'Positive'),
+        ('Neutral', 'Neutral'),
+        ('Negative', 'Negative'),
+        ('No answer', 'No answer'),
+    )
+
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE, null=True, blank=True, related_name="interactions")
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, null=True, blank=True, related_name="interactions")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="lead_interactions")
+    
+    activity_type = models.CharField(max_length=30, choices=INTERACTION_TYPES, default='Call')
+    contact_person = models.CharField(max_length=255, blank=True, null=True, verbose_name="Contact Person")
+    outcome = models.CharField(max_length=30, choices=OUTCOME_CHOICES, default='Positive', verbose_name="Outcome")
+    notes = models.TextField(verbose_name="Summary / Discussion Notes")
+    next_step = models.CharField(max_length=255, blank=True, null=True, verbose_name="Next Step")
+    next_step_date = models.DateField(null=True, blank=True, verbose_name="Next Step Date")
+    rating_given = models.IntegerField(null=True, blank=True, choices=[(i, f"{i} Stars") for i in range(1, 6)])
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        target = self.lead.company_name if self.lead else (self.client.company_name if self.client else "Unknown")
+        return f"{self.activity_type} with {target} by {self.author}"
+
+

@@ -1,0 +1,413 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CRM Platform - SPANCOP Collaborative Studio{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+  <style>
+    /* Compact Sidebar for expanded main content area */
+    .app-shell {
+      grid-template-columns: 200px minmax(0, 1fr) !important;
+    }
+    .sidebar {
+      padding: 20px 12px !important;
+    }
+    .brand-name {
+      font-size: 0.95rem;
+    }
+    .crm-sidebar-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid rgba(231, 111, 65, 0.2);
+    }
+    .nav-divider {
+      height: 1px;
+      background: var(--line);
+      margin: 0.75rem 0;
+      opacity: 0.7;
+    }
+    .nav-link {
+      padding: 0.5rem 0.75rem !important;
+      font-size: 0.88rem !important;
+    }
+    .nav-link-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding: 0.4rem 0.75rem;
+      margin-left: 0.5rem;
+      display: block;
+      border-left: 2px solid var(--line);
+      transition: all 0.2s ease;
+    }
+    .nav-link-sub:hover, .nav-link-sub.active {
+      color: var(--accent-strong);
+      border-left-color: var(--accent);
+    }
+    .app-header {
+      padding: 0.4rem 1.5rem !important;
+      margin-bottom: 0 !important;
+      min-height: 48px !important;
+      height: 48px !important;
+      border-bottom: 1px solid var(--line) !important;
+      background: var(--surface) !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      overflow: visible !important;
+      position: relative !important;
+      z-index: 100 !important;
+    }
+    .main-panel {
+      padding-top: 0 !important;
+      overflow: visible !important;
+    }
+    .content-container {
+      padding: 1rem 1.5rem !important;
+    }
+
+    /* CRM Modal Framework */
+    .crm-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+    }
+    .crm-modal-dialog {
+      background: var(--surface, #ffffff);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: crmModalIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes crmModalIn {
+      from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    .crm-modal-header {
+      padding: 1.15rem 1.5rem;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--surface);
+    }
+    .crm-modal-title {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .crm-modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: var(--surface-strong);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 0;
+    }
+    .crm-modal-close:hover {
+      background: #fee2e2;
+      color: #ef4444;
+      border-color: #fca5a5;
+      transform: scale(1.05);
+    }
+    .crm-modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .crm-modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--line);
+      background: var(--surface-strong);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .form-section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent-strong);
+      margin-top: 1.25rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .form-section-title:first-child {
+      margin-top: 0;
+    }
+    .form-section-title::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+    .form-field-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+    .form-field-label .req {
+      color: var(--status-danger, #ef4444);
+      margin-left: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Dedicated CRM Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-mark" style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);">CRM</div>
+          <div>
+            <div class="brand-name">CRM Studio</div>
+            <div class="brand-subtitle">Collaborative SPANCOP</div>
+          </div>
+        </div>
+        <button id="sidebar-close" class="sidebar-close-btn" aria-label="Close menu">&times;</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-link {% if request.path == '/crm/' %}active{% endif %}" href="/crm/">
+          <span>Control Dashboard</span>
+        </a>
+        <a class="nav-link {% if '/crm/leads/' in request.path %}active{% endif %}" href="/crm/leads/">
+          <span>Leads Pipeline</span>
+        </a>
+        <a class="nav-link {% if '/crm/clients/' in request.path %}active{% endif %}" href="/crm/clients/">
+          <span>Active Clients</span>
+        </a>
+        <a class="nav-link {% if '/crm/interactions/' in request.path %}active{% endif %}" href="/crm/interactions/">
+          <span>Daily Activity Log</span>
+        </a>
+        <a class="nav-link {% if '/crm/geography/' in request.path %}active{% endif %}" href="/crm/geography/">
+          <span>Geography Breakdown</span>
+        </a>
+        <a class="nav-link {% if '/crm/analytics/' in request.path %}active{% endif %}" href="/crm/analytics/">
+          <span>Funnel Analytics</span>
+        </a>
+
+        <div class="nav-divider"></div>
+
+        <a class="nav-link" href="/" style="opacity: 0.85;">
+          <span>Main Control Center</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        {% if user.is_authenticated %}
+          <div style="display: flex; flex-direction: column; gap: 0.2rem; width: 100%;">
+            <div class="user-chip">{{ user.username }} <span class="crm-sidebar-badge">Sales Team</span></div>
+          </div>
+          <form method="post" action="/accounts/logout/" style="margin-top: 0.5rem;">
+            {% csrf_token %}
+            <button class="ghost-button" type="submit" style="width: 100%;">Logout</button>
+          </form>
+        {% else %}
+          <a class="primary-button" href="/accounts/login/">Login</a>
+        {% endif %}
+      </div>
+    </aside>
+
+    <!-- Main Panel -->
+    <main class="main-panel">
+      <header class="app-header">
+        <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="Open menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        
+        <div class="header-brand">
+          <div class="brand-mark-mini" style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);">CRM</div>
+          <span class="brand-name-mini">Collaborative Sales CRM</span>
+        </div>
+        
+        <div class="header-actions" style="margin-left: auto; position: relative; z-index: 105;">
+          {% if user.is_authenticated %}
+          <div class="notification-bell" style="position: relative; cursor: pointer;">
+            <button id="bell-button" class="ghost-button" style="padding: 8px 12px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              <span id="unread-badge" style="display: none; position: absolute; top: -5px; right: -5px; background: var(--status-danger, #ef4444); color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; font-weight: bold;">0</span>
+            </button>
+            
+            <div id="notification-dropdown" style="display: none; position: absolute; right: 0; left: auto; top: calc(100% + 8px); width: 320px; max-width: calc(100vw - 32px); background: var(--surface-strong, #ffffff); color: var(--text); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18); padding: 1rem; z-index: 99999;">
+              <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 1rem; font-weight: 700; border-bottom: 1px solid var(--line); padding-bottom: 8px; color: var(--text);">Notifications</h4>
+              <div id="notification-list" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </header>
+      
+      {% if user.is_authenticated %}
+      <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const bellBtn = document.getElementById('bell-button');
+            const dropdown = document.getElementById('notification-dropdown');
+            const badge = document.getElementById('unread-badge');
+            const list = document.getElementById('notification-list');
+            
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            function loadNotifications() {
+                fetch('/api/notifications/')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.unread_count > 0) {
+                            badge.style.display = 'block';
+                            badge.textContent = data.unread_count;
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                        
+                        list.innerHTML = '';
+                        if (data.notifications.length === 0) {
+                            list.innerHTML = '<p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">No notifications</p>';
+                        } else {
+                            data.notifications.forEach(n => {
+                                const item = document.createElement('div');
+                                item.style.padding = '8px';
+                                item.style.background = n.is_read ? 'transparent' : 'var(--accent-soft)';
+                                item.style.borderBottom = '1px solid var(--line)';
+                                item.style.fontSize = '0.9rem';
+                                item.innerHTML = `
+                                    <strong style="display:block; color: var(--text);">From: ${n.sender}</strong>
+                                    <span style="display:block; margin: 4px 0; color: var(--text-secondary);">${n.message}</span>
+                                    <small style="color: var(--muted);">${n.created_at}</small>
+                                `;
+                                list.appendChild(item);
+                            });
+                        }
+                    });
+            }
+            
+            if (bellBtn) {
+              bellBtn.addEventListener('click', () => {
+                  const isHidden = dropdown.style.display === 'none';
+                  dropdown.style.display = isHidden ? 'block' : 'none';
+                  
+                  if (isHidden) {
+                      fetch('/api/notifications/read/', {
+                          method: 'POST',
+                          headers: {
+                              'X-CSRFToken': getCookie('csrftoken')
+                          }
+                      }).then(() => {
+                          badge.style.display = 'none';
+                          loadNotifications();
+                      });
+                  }
+              });
+            }
+            
+            document.addEventListener('click', (e) => {
+                if (bellBtn && !bellBtn.contains(e.target) && dropdown && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+            
+            loadNotifications();
+        });
+      </script>
+      {% endif %}
+
+      <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            const closeBtn = document.getElementById('sidebar-close');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.createElement('div');
+            overlay.className = 'sidebar-overlay';
+            document.body.appendChild(overlay);
+
+            function openSidebar() {
+                sidebar.classList.add('active');
+                overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            if (toggleBtn) toggleBtn.addEventListener('click', openSidebar);
+            if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+            overlay.addEventListener('click', closeSidebar);
+
+            document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
+                link.addEventListener('click', closeSidebar);
+            });
+        });
+      </script>
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

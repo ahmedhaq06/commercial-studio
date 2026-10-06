@@ -1,947 +1,282 @@
-{% extends "base.html" %}
+{% extends "crm_base.html" %}
+{% load static %}
+
+{% block title %}Sales CRM — Daily Control Dashboard{% endblock %}
+
 {% block content %}
 <style>
-/* Metrics Grid Styles */
-.crm-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 2rem;
-}
-.crm-metric-card {
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  padding: 1.25rem;
-  box-shadow: 0 4px 12px rgba(32, 47, 70, 0.04);
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.crm-metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
-}
-.crm-metric-card .metric-label {
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.crm-metric-card .metric-val {
-  font-size: 1.6rem;
-  color: var(--text);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-/* Kanban Board Styles */
-.kanban-board {
-  display: flex;
-  gap: 1.25rem;
-  overflow-x: auto;
-  padding-bottom: 1.5rem;
-  scrollbar-width: thin;
-}
-.kanban-column {
-  flex: 1;
-  min-width: 280px;
-  background: rgba(37, 58, 87, 0.02);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.kanban-column.drag-over {
-  background: rgba(240, 162, 58, 0.04);
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(240, 162, 58, 0.1);
-}
-.kanban-column h3 {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid var(--line);
-}
-.kanban-column .stage-total {
-  font-size: 0.8rem;
-  color: var(--muted);
-  font-weight: 600;
-}
-.column-badge {
-  background: var(--bg);
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border: 1px solid var(--line);
-}
-
-/* Color Coding for Column Headers */
-.kanban-column[data-stage="New"] h3 {
-  border-bottom-color: var(--accent);
-}
-.kanban-column[data-stage="Qualified"] h3 {
-  border-bottom-color: var(--status-warning);
-}
-.kanban-column[data-stage="Proposition"] h3 {
-  border-bottom-color: var(--accent-strong);
-}
-.kanban-column[data-stage="Won"] h3 {
-  border-bottom-color: var(--status-success);
-}
-
-.kanban-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  min-height: 250px;
-  transition: min-height 0.2s ease;
-}
-
-/* Card Styling */
-.kanban-card {
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, opacity 0.2s ease;
-  cursor: grab;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.kanban-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(32, 47, 70, 0.08), 0 4px 6px -2px rgba(32, 47, 70, 0.04);
-  border-color: rgba(37, 58, 87, 0.25);
-}
-.kanban-card:active {
-  cursor: grabbing;
-}
-.kanban-card.dragging {
-  opacity: 0.4;
-  transform: scale(0.98);
-  border-style: dashed;
-}
-
-.kanban-card strong.opp-name {
-  color: var(--text);
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1.3;
-}
-.kanban-card .contact-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-.kanban-card .revenue-tag {
-  display: inline-flex;
-  width: fit-content;
-  padding: 0.35rem 0.65rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 800;
-  background: rgba(16, 185, 129, 0.08);
-  color: #059669;
-  margin-top: 0.25rem;
-}
-.kanban-column[data-stage="Won"] .kanban-card .revenue-tag {
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
-}
-
-.kanban-card .created-tag {
-  font-size: 0.72rem;
-  color: var(--muted);
-  border-top: 1px solid rgba(37, 58, 87, 0.08);
-  padding-top: 0.5rem;
-  margin-top: 0.25rem;
-}
-
-/* Card Menu Dropdowns */
-.card-menu {
-  display: none;
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow);
-  z-index: 200;
-  min-width: 180px;
-  overflow: visible;
-  font-size: 0.85rem;
-  padding: 0.4rem 0;
-}
-.card-menu a, .card-menu button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  text-align: left;
-  padding: 0.5rem 1rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text);
-  font-family: inherit;
-  font-size: inherit;
-  transition: background-color 0.15s ease;
-}
-.card-menu a:hover, .card-menu button:hover {
-  background-color: rgba(23, 46, 78, 0.05) !important;
-}
-.card-menu .menu-divider {
-  height: 1px;
-  background: var(--line);
-  margin: 0.4rem 0;
-}
-.card-menu .menu-danger {
-  color: #d93f3f;
-}
-.card-menu .menu-danger:hover {
-  background-color: rgba(217, 63, 63, 0.05) !important;
-}
-
-/* Stage Transfer Dropdown Submenu */
-.stage-submenu {
-  position: relative;
-}
-.stage-submenu-content {
-  display: none;
-  position: absolute;
-  left: -182px;
-  top: 0;
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow);
-  min-width: 180px;
-  padding: 0.4rem 0;
-  z-index: 210;
-}
-.stage-submenu:hover .stage-submenu-content {
-  display: block;
-}
-
-/* Empty State Styling */
-.column-empty-state {
-  display: none;
-  border: 2px dashed var(--line);
-  border-radius: 8px;
-  padding: 2.5rem 1rem;
-  text-align: center;
-  color: var(--muted);
-  font-size: 0.8rem;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Custom Search Header CSS */
-.crm-search-container {
-  position: relative;
-}
-.crm-search-input {
-  width: 100%;
-  padding: 0.65rem 1rem 0.65rem 2.25rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface-strong);
-  color: var(--text);
-  font-size: 0.9rem;
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.crm-search-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(240, 162, 58, 0.15);
-}
-.crm-search-icon {
-  position: absolute;
-  left: 0.9rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--muted);
-  pointer-events: none;
-  font-size: 0.9rem;
-}
-
-/* Modals Restyling */
-.crm-modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(29, 42, 59, 0.4);
-  z-index: 1000;
-  justify-content: center;
-  align-items: center;
-  backdrop-filter: blur(8px);
-  animation: fadeIn 0.2s ease-out;
-}
-.crm-modal-content {
-  background: var(--surface-strong);
-  padding: 2rem;
-  border-radius: var(--radius-lg);
-  width: 90%;
-  max-width: 500px;
-  box-shadow: var(--shadow);
-  text-align: left;
-  border: 1px solid var(--line);
-  position: relative;
-  animation: slideUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.crm-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 1rem;
-}
-.crm-modal-header h2 {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--text);
-}
-.crm-modal-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--muted);
-  transition: color 0.15s ease;
-  line-height: 1;
-  padding: 4px;
-}
-.crm-modal-close:hover {
-  color: var(--text);
-}
-
-.crm-form-group {
-  margin-bottom: 1rem;
-}
-.crm-form-group label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.4rem;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-.crm-form-input {
-  width: 100%;
-  padding: 0.65rem 0.85rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.9rem;
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.crm-form-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(240, 162, 58, 0.15);
-}
-
-/* Toast Alerts styling */
-.crm-toast {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  background: #1e293b;
-  color: #f8fafc;
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  opacity: 0;
-  transform: translateY(1rem);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  pointer-events: none;
-}
-.crm-toast.show {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-.crm-toast.error {
-  border-left: 4px solid #ef4444;
-}
-.crm-toast.success {
-  border-left: 4px solid #10b981;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes slideUp {
-  from { transform: translateY(15px) scale(0.97); opacity: 0; }
-  to { transform: translateY(0) scale(1); opacity: 1; }
-}
+  .text-danger { color: #ef4444 !important; font-weight: 600; }
+  .text-success { color: #10b981 !important; font-weight: 600; }
+  .text-warning { color: #f59e0b !important; font-weight: 600; }
+  .text-muted-val { color: var(--muted) !important; font-weight: 600; }
+  .row-alert { background: rgba(239, 68, 68, 0.05) !important; }
 </style>
 
-<section class="panel-card" style="margin-bottom: 2rem;">
-  <!-- Section Header -->
-  <div class="section-head" style="margin-bottom: 1.5rem;">
-    <div>
-      <p class="eyebrow">CRM</p>
-      <h2>Sales Pipeline</h2>
-    </div>
-    <div style="display: flex; gap: 1rem; align-items: center; width: 100%; max-width: 600px; justify-content: flex-end;">
-      <div class="crm-search-container" style="width: 100%; max-width: 320px;">
-        <span class="crm-search-icon">🔍</span>
-        <input type="text" id="crm-search" placeholder="Search opportunities, contacts..." class="crm-search-input">
+<div class="content-container" style="max-width: 1400px; margin: 0 auto; padding: 1rem 1.5rem;">
+
+  <!-- Header & Control Bar -->
+  <div class="card" style="margin-bottom: 1rem; padding: 1rem 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.35rem; font-weight: 700; color: var(--text);">Daily Control Dashboard</h2>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--muted);">Green Energy ROLF Lubricants Trading L.L.C — Executive Sales Control</p>
       </div>
-      <button class="primary-button" onclick="document.getElementById('new-lead-modal').style.display = 'flex'" style="white-space: nowrap;">+ New Lead</button>
-    </div>
-  </div>
-
-  <!-- KPI Overview Metrics Header -->
-  <div class="crm-metrics-grid">
-    <div class="crm-metric-card">
-      <span class="metric-label">Total Pipeline</span>
-      <strong class="metric-val" id="metric-pipeline-value">AED 0.00</strong>
-    </div>
-    <div class="crm-metric-card">
-      <span class="metric-label">Won Revenue</span>
-      <strong class="metric-val" id="metric-won-value" style="color: #10b981;">AED 0.00</strong>
-    </div>
-    <div class="crm-metric-card">
-      <span class="metric-label">Active Deals</span>
-      <strong class="metric-val" id="metric-active-deals">0</strong>
-    </div>
-    <div class="crm-metric-card">
-      <span class="metric-label">Conversion Rate</span>
-      <strong class="metric-val" id="metric-conversion-rate">0%</strong>
-    </div>
-  </div>
-
-  <!-- CSRF Helper -->
-  {% csrf_token %}
-
-  <!-- Kanban Board Layout -->
-  <div class="kanban-board">
-    {% for stage, leads in leads_by_stage.items %}
-    <div class="kanban-column" data-stage="{{ stage }}" ondragover="allowDrop(event)" ondrop="drop(event)">
-      <h3>
-        <span style="display: flex; align-items: center; gap: 0.4rem;">
-          {{ stage }}
-          <span class="column-badge" id="badge-{{ stage }}">{{ leads|length }}</span>
-        </span>
-        <span class="stage-total" id="total-{{ stage }}">AED 0.00</span>
-      </h3>
       
-      <!-- Column Empty State Placeholder -->
-      <div class="column-empty-state" id="empty-state-{{ stage }}">
-        <span style="font-size: 1.5rem;">📂</span>
-        <span>No leads in this stage</span>
-      </div>
-
-      <div class="kanban-cards" id="cards-container-{{ stage }}">
-        {% for lead in leads %}
-        <div class="kanban-card" 
-             draggable="true" 
-             ondragstart="drag(event)" 
-             data-id="{{ lead.pk }}"
-             data-opp-name="{{ lead.opportunity_name }}"
-             data-contact-name="{{ lead.contact_name }}"
-             data-contact-email="{{ lead.contact_email|default_if_none:'' }}"
-             data-contact-phone="{{ lead.contact_phone|default_if_none:'' }}"
-             data-revenue="{{ lead.revenue }}"
-             data-stage="{{ lead.stage }}"
-             data-product-id="{{ lead.product.id|default:'' }}"
-             data-quantity="{{ lead.quantity|default:'0' }}"
-             data-search-term="{{ lead.opportunity_name|lower }} {{ lead.contact_name|lower }} {{ lead.contact_email|default_if_none:''|lower }} {{ lead.contact_phone|default_if_none:''|lower }}">
-          
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
-            <strong class="opp-name">{{ lead.opportunity_name }}</strong>
-            <div style="position: relative;">
-              <button onclick="toggleMenu(event, 'menu-{{ lead.pk }}')" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; padding: 0 4px; line-height: 1;" title="Actions">⋮</button>
-              <div id="menu-{{ lead.pk }}" class="card-menu">
-                <a href="/documents/lead-quotation/{{ lead.pk }}/" target="_blank">📄 Quotation</a>
-                <a href="/documents/lead-proforma/{{ lead.pk }}/" target="_blank">🧾 Proforma Invoice</a>
-                <button onclick="openEditModal('{{ lead.pk }}'); document.getElementById('menu-{{ lead.pk }}').style.display='none';">✏️ Edit</button>
-                
-                <!-- Move to Stage Dropdown (Mobile/Tablet accessibility helper) -->
-                <div class="stage-submenu">
-                  <button type="button" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <span>🔄 Move to Stage</span>
-                    <span style="font-size: 0.6rem;">▶</span>
-                  </button>
-                  <div class="stage-submenu-content">
-                    <button type="button" onclick="moveLeadViaMenu('{{ lead.pk }}', 'New')">New</button>
-                    <button type="button" onclick="moveLeadViaMenu('{{ lead.pk }}', 'Qualified')">Qualified</button>
-                    <button type="button" onclick="moveLeadViaMenu('{{ lead.pk }}', 'Proposition')">Proposition</button>
-                    <button type="button" onclick="moveLeadViaMenu('{{ lead.pk }}', 'Won')">Won</button>
-                  </div>
-                </div>
-
-                <div class="menu-divider"></div>
-                <form method="POST" action="{% url 'crm_lead_delete' lead.pk %}" onsubmit="return confirm('Are you sure you want to delete this lead?');" style="margin: 0; padding: 0;">
-                  {% csrf_token %}
-                  <button type="submit" class="menu-danger">🗑️ Delete</button>
-                </form>
-              </div>
-            </div>
-          </div>
-          
-          <div class="contact-info">
-            <span>👤 {{ lead.contact_name }}</span>
-            {% if lead.contact_email %}<span>✉️ {{ lead.contact_email }}</span>{% endif %}
-            {% if lead.contact_phone %}<span>📞 {{ lead.contact_phone }}</span>{% endif %}
-            {% if lead.product %}
-              <span style="margin-top: 0.25rem; font-weight: 600; color: var(--text);">📦 {{ lead.product.sku }} ({{ lead.quantity|floatformat:0 }} units)</span>
-            {% endif %}
-          </div>
-          
-          <div class="revenue-tag">
-            AED {{ lead.revenue }}
-          </div>
-          
-          <div class="created-tag">
-            <span>Created: {{ lead.created_at|date:"M d, Y" }}</span>
-          </div>
+      <form method="get" action="" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Report Date:</label>
+          <input type="date" name="report_date" value="{{ report_date }}" class="input-field" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
         </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-</section>
+        
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Manager:</label>
+          <select name="manager" class="input-field" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
+            <option value="All" {% if selected_manager == 'All' %}selected{% endif %}>All Managers</option>
+            {% for u in sales_users %}
+              <option value="{{ u.id }}" {% if selected_manager == u.id %}selected{% endif %}>{{ u.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-<!-- Modal for New Lead -->
-<div id="new-lead-modal" class="crm-modal">
-  <div class="crm-modal-content">
-    <div class="crm-modal-header">
-      <h2>Add New Lead</h2>
-      <button type="button" class="crm-modal-close" onclick="document.getElementById('new-lead-modal').style.display='none'">&times;</button>
+        <button type="submit" class="primary-button" style="padding: 0.4rem 0.9rem; font-size: 0.85rem;">Filter</button>
+      </form>
     </div>
-    <form method="POST" action="{% url 'crm_lead_create' %}" style="display: flex; flex-direction: column; gap: 0.5rem;">
-      {% csrf_token %}
-      <input type="hidden" name="stage" value="New">
-      <div class="crm-form-group">
-        <label>Opportunity Name</label>
-        <input type="text" name="opportunity_name" required class="crm-form-input" placeholder="e.g. Q3 Lubricants Supply">
+  </div>
+
+  <!-- TODAY AT A GLANCE (KPI Grid) -->
+  <div style="margin-bottom: 1.5rem;">
+    <h3 style="font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.75rem; color: var(--text-secondary);">Today at a Glance</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+      <div class="card" style="padding: 1rem; border-left: 4px solid #3b82f6;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--muted); font-weight: 600;">Activities Logged</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--text); margin-top: 0.2rem;">{{ kpi.activities_today }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">On selected report date</div>
       </div>
-      <div class="crm-form-group">
-        <label>Contact Name</label>
-        <input type="text" name="contact_name" required class="crm-form-input" placeholder="e.g. John Doe">
+
+      <div class="card" style="padding: 1rem; border-left: 4px solid #10b981;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--muted); font-weight: 600;">New Leads Added</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--text); margin-top: 0.2rem;">{{ kpi.new_leads_today }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">Added on report date</div>
       </div>
-      <div class="crm-form-group">
-        <label>Contact Email</label>
-        <input type="email" name="contact_email" class="crm-form-input" placeholder="e.g. john@example.com">
+
+      <div class="card" style="padding: 1rem; border-left: 4px solid #f59e0b;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--muted); font-weight: 600;">Follow-ups Due</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--text); margin-top: 0.2rem;">{{ kpi.followups_due_today }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">Scheduled for report date</div>
       </div>
-      <div class="crm-form-group">
-        <label>Contact Phone</label>
-        <input type="text" name="contact_phone" class="crm-form-input" placeholder="e.g. +971 50 123 4567">
+
+      <div class="card" style="padding: 1rem; border-left: 4px solid #ef4444;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--muted); font-weight: 600;">Overdue Follow-ups</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: #ef4444; margin-top: 0.2rem;">{{ kpi.overdue_followups }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">Action date passed</div>
       </div>
-      <div class="crm-form-group">
-        <label>Linked Product</label>
-        <select name="product" class="crm-form-input">
-          <option value="">-- No Linked Product --</option>
-          {% for prod in products %}
-            <option value="{{ prod.id }}">{{ prod.sku }} - {{ prod.name }}</option>
+
+      <div class="card" style="padding: 1rem; border-left: 4px solid #6366f1;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--muted); font-weight: 600;">Open Prospects</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--text); margin-top: 0.2rem;">{{ kpi.open_leads }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">Active pipeline leads</div>
+      </div>
+
+      <div class="card" style="padding: 1rem; border-left: 4px solid #8b5cf6;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--muted); font-weight: 600;">Open Pipeline ($)</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--text); margin-top: 0.2rem;">${{ kpi.open_pipeline_val|floatformat:0 }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">Estimated deal value</div>
+      </div>
+
+      <div class="card" style="padding: 1rem; border-left: 4px solid #06b6d4;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--muted); font-weight: 600;">Active Clients</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--text); margin-top: 0.2rem;">{{ kpi.active_clients }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">Active customer accounts</div>
+      </div>
+
+      <div class="card" style="padding: 1rem; border-left: 4px solid #14b8a6;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--muted); font-weight: 600;">Sales YTD ($)</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--text); margin-top: 0.2rem;">${{ kpi.sales_ytd_val|floatformat:0 }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">Year-to-date revenue</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Activity & 7-Day Trend -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+    <!-- Activity on Report Date by Type -->
+    <div class="card" style="padding: 1.25rem;">
+      <h4 style="margin: 0 0 1rem 0; font-size: 0.95rem; font-weight: 700; color: var(--text);">Activity Breakdown (Report Date)</h4>
+      <div style="overflow-x: auto;">
+        <table class="data-table" style="width: 100%; font-size: 0.85rem;">
+          <thead>
+            <tr>
+              <th>Activity Type</th>
+              <th style="text-align: right;">Total Count</th>
+              <th style="text-align: right;">Positive Outcome</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in activity_by_type %}
+            <tr>
+              <td style="font-weight: 600;">{{ item.type }}</td>
+              <td style="text-align: right;">{{ item.count }}</td>
+              <td style="text-align: right;" {% if item.positive > 0 %}class="text-success"{% else %}class="text-muted-val"{% endif %}>
+                {{ item.positive }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Last 7 Days Activity Trend -->
+    <div class="card" style="padding: 1.25rem;">
+      <h4 style="margin: 0 0 1rem 0; font-size: 0.95rem; font-weight: 700; color: var(--text);">Last 7 Days Activity Velocity</h4>
+      <div style="overflow-x: auto;">
+        <table class="data-table" style="width: 100%; font-size: 0.85rem;">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Day</th>
+              <th style="text-align: right;">Activities</th>
+              <th style="text-align: right;">New Leads</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for day in last_7_days %}
+            <tr {% if day.is_empty %}class="row-alert"{% endif %}>
+              <td>{{ day.date }}</td>
+              <td style="font-weight: 600;">{{ day.day }}</td>
+              <td style="text-align: right; font-weight: 700;">{{ day.activities }}</td>
+              <td style="text-align: right;">{{ day.new_leads }}</td>
+              <td>
+                {% if day.is_empty %}
+                  <span class="text-danger" style="font-size: 0.75rem;">No activity logged</span>
+                {% else %}
+                  <span class="text-success" style="font-size: 0.75rem;">Active</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline by Status -->
+  <div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+    <h4 style="margin: 0 0 1rem 0; font-size: 0.95rem; font-weight: 700; color: var(--text);">Pipeline Stage Summary</h4>
+    <div style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%; font-size: 0.85rem;">
+        <thead>
+          <tr>
+            <th>Pipeline Status</th>
+            <th style="text-align: right;">Leads Count</th>
+            <th style="text-align: right;">Deal Value (USD)</th>
+            <th style="text-align: right;">Volume (L/month)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for st in pipeline_by_status %}
+          <tr>
+            <td style="font-weight: 600;">{{ st.status }}</td>
+            <td style="text-align: right; font-weight: 700;">{{ st.count }}</td>
+            <td style="text-align: right;">${{ st.value|floatformat:0 }}</td>
+            <td style="text-align: right;">{{ st.volume|floatformat:0 }} L</td>
+          </tr>
           {% endfor %}
-        </select>
-      </div>
-      <div class="crm-form-group">
-        <label>Quantity</label>
-        <input type="number" step="0.01" name="quantity" class="crm-form-input" placeholder="e.g. 100">
-      </div>
-      <div class="crm-form-group">
-        <label>Revenue (AED)</label>
-        <input type="number" step="0.01" name="revenue" required class="crm-form-input" placeholder="e.g. 50000.00">
-      </div>
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
-        <button type="button" class="ghost-button" onclick="document.getElementById('new-lead-modal').style.display='none'">Cancel</button>
-        <button type="submit" class="primary-button">Create Lead</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Modal for Edit Lead -->
-<div id="edit-lead-modal" class="crm-modal">
-  <div class="crm-modal-content">
-    <div class="crm-modal-header">
-      <h2>Edit Lead</h2>
-      <button type="button" class="crm-modal-close" onclick="document.getElementById('edit-lead-modal').style.display='none'">&times;</button>
+        </tbody>
+      </table>
     </div>
-    <form id="edit-lead-form" method="POST" action="" style="display: flex; flex-direction: column; gap: 0.5rem;">
-      {% csrf_token %}
-      <input type="hidden" name="stage" id="edit_stage">
-      <div class="crm-form-group">
-        <label>Opportunity Name</label>
-        <input type="text" name="opportunity_name" id="edit_opportunity_name" required class="crm-form-input">
-      </div>
-      <div class="crm-form-group">
-        <label>Contact Name</label>
-        <input type="text" name="contact_name" id="edit_contact_name" required class="crm-form-input">
-      </div>
-      <div class="crm-form-group">
-        <label>Linked Product</label>
-        <select name="product" id="edit_product" class="crm-form-input">
-          <option value="">-- No Linked Product --</option>
-          {% for prod in products %}
-            <option value="{{ prod.id }}">{{ prod.sku }} - {{ prod.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="crm-form-group">
-        <label>Quantity</label>
-        <input type="number" step="0.01" name="quantity" id="edit_quantity" class="crm-form-input">
-      </div>
-      <div class="crm-form-group">
-        <label>Revenue (AED)</label>
-        <input type="number" step="0.01" name="revenue" id="edit_revenue" required class="crm-form-input">
-      </div>
-      <div class="crm-form-group">
-        <label>Contact Email</label>
-        <input type="email" name="contact_email" id="edit_contact_email" class="crm-form-input">
-      </div>
-      <div class="crm-form-group">
-        <label>Contact Phone</label>
-        <input type="text" name="contact_phone" id="edit_contact_phone" class="crm-form-input">
-      </div>
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
-        <button type="button" class="ghost-button" onclick="document.getElementById('edit-lead-modal').style.display='none'">Cancel</button>
-        <button type="submit" class="primary-button">Save Changes</button>
-      </div>
-    </form>
   </div>
+
+  <!-- Sales Manager Performance -->
+  <div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+    <h4 style="margin: 0 0 1rem 0; font-size: 0.95rem; font-weight: 700; color: var(--text);">Sales Representative Performance</h4>
+    <div style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%; font-size: 0.85rem;">
+        <thead>
+          <tr>
+            <th>Sales Representative</th>
+            <th style="text-align: right;">Acts (Report Date)</th>
+            <th style="text-align: right;">Acts (7 Days)</th>
+            <th style="text-align: right;">New Leads (7d)</th>
+            <th style="text-align: right;">Open Prospects</th>
+            <th style="text-align: right;">Overdue Tasks</th>
+            <th style="text-align: right;">Won Deals</th>
+            <th style="text-align: right;">Pipeline ($)</th>
+            <th style="text-align: right;">Active Clients</th>
+            <th style="text-align: right;">Sales YTD ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in manager_perf %}
+          <tr>
+            <td style="font-weight: 700;">{{ m.user.username }}</td>
+            <td style="text-align: right;">{{ m.acts_rep_date }}</td>
+            <td style="text-align: right;">{{ m.acts_7d }}</td>
+            <td style="text-align: right;">{{ m.new_7d }}</td>
+            <td style="text-align: right;">{{ m.open_leads }}</td>
+            <td style="text-align: right;" {% if m.overdue > 0 %}class="text-danger"{% endif %}>
+              {{ m.overdue }}
+            </td>
+            <td style="text-align: right;" class="text-success">
+              {{ m.won_count }}
+            </td>
+            <td style="text-align: right;">${{ m.pipe_val|floatformat:0 }}</td>
+            <td style="text-align: right;">{{ m.active_clients }}</td>
+            <td style="text-align: right; font-weight: 700;">${{ m.sales_ytd|floatformat:0 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Geographic Summary Table -->
+  {% if country_summary %}
+  <div class="card" style="padding: 1.25rem;">
+    <h4 style="margin: 0 0 1rem 0; font-size: 0.95rem; font-weight: 700; color: var(--text);">Geographic Distribution Summary</h4>
+    <div style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%; font-size: 0.85rem;">
+        <thead>
+          <tr>
+            <th>Country</th>
+            <th style="text-align: right;">Total Leads</th>
+            <th style="text-align: right;">Open Leads</th>
+            <th style="text-align: right;">Hot Leads</th>
+            <th style="text-align: right;">Offers / Neg.</th>
+            <th style="text-align: right;">Won</th>
+            <th style="text-align: right;">Pipeline ($)</th>
+            <th style="text-align: right;">Active Clients</th>
+            <th style="text-align: right;">Sales YTD ($)</th>
+            <th style="text-align: right;">Acts (7d)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in country_summary %}
+          <tr>
+            <td style="font-weight: 700;">{{ c.country }}</td>
+            <td style="text-align: right;">{{ c.total_leads }}</td>
+            <td style="text-align: right;">{{ c.open_leads }}</td>
+            <td style="text-align: right;" {% if c.hot_leads > 0 %}class="text-danger"{% endif %}>
+              {{ c.hot_leads }}
+            </td>
+            <td style="text-align: right;">{{ c.offer_neg }}</td>
+            <td style="text-align: right;" class="text-success">
+              {{ c.won }}
+            </td>
+            <td style="text-align: right;">${{ c.pipe_val|floatformat:0 }}</td>
+            <td style="text-align: right;">{{ c.active_clients }}</td>
+            <td style="text-align: right; font-weight: 700;">${{ c.sales_ytd|floatformat:0 }}</td>
+            <td style="text-align: right;">{{ c.acts_7d }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
-
-<!-- Toast element -->
-<div id="crm-toast" class="crm-toast"></div>
-
-<script>
-// Open Edit Modal using data attributes from card
-function openEditModal(id) {
-    const card = document.querySelector(`.kanban-card[data-id="${id}"]`);
-    if (!card) return;
-
-    document.getElementById('edit_opportunity_name').value = card.dataset.oppName;
-    document.getElementById('edit_contact_name').value = card.dataset.contactName;
-    document.getElementById('edit_revenue').value = card.dataset.revenue;
-    document.getElementById('edit_contact_email').value = card.dataset.contactEmail;
-    document.getElementById('edit_contact_phone').value = card.dataset.contactPhone;
-    document.getElementById('edit_stage').value = card.dataset.stage;
-    document.getElementById('edit_product').value = card.dataset.productId || "";
-    document.getElementById('edit_quantity').value = card.dataset.quantity || 0;
-    document.getElementById('edit-lead-form').action = '/crm/lead/' + id + '/edit/';
-    document.getElementById('edit-lead-modal').style.display = 'flex';
-}
-
-// Visual Alerts
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('crm-toast');
-    toast.textContent = (type === 'error' ? '❌ ' : '✅ ') + message;
-    toast.className = 'crm-toast ' + type + ' show';
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 4000);
-}
-
-// Drag & Drop
-function drag(ev) {
-    ev.dataTransfer.setData("text/plain", ev.currentTarget.dataset.id);
-    ev.currentTarget.classList.add('dragging');
-}
-
-document.addEventListener('dragend', function(ev) {
-    if(ev.target.classList && ev.target.classList.contains('kanban-card')) {
-         ev.target.classList.remove('dragging');
-    }
-});
-
-function allowDrop(ev) {
-    ev.preventDefault();
-    const column = ev.currentTarget.closest('.kanban-column');
-    if (column) {
-        column.classList.add('drag-over');
-    }
-}
-
-// Drag-over styling resets
-document.querySelectorAll('.kanban-column').forEach(col => {
-    col.addEventListener('dragleave', function() {
-        col.classList.remove('drag-over');
-    });
-    col.addEventListener('drop', function() {
-        col.classList.remove('drag-over');
-    });
-});
-
-function drop(ev) {
-    ev.preventDefault();
-    const col = ev.currentTarget.closest('.kanban-column');
-    if (!col) return;
-    col.classList.remove('drag-over');
-
-    const leadId = ev.dataTransfer.getData("text/plain");
-    const card = document.querySelector(`.kanban-card[data-id="${leadId}"]`);
-    if (!card) return;
-
-    const sourceColumn = card.closest('.kanban-column');
-    const targetCardsContainer = col.querySelector('.kanban-cards');
-    if (!targetCardsContainer || !sourceColumn) return;
-
-    const oldStage = sourceColumn.dataset.stage;
-    const newStage = col.dataset.stage;
-
-    // Drop in the same stage - do nothing
-    if (oldStage === newStage) return;
-
-    // Optimistically move card in DOM and recalculate
-    targetCardsContainer.appendChild(card);
-    card.dataset.stage = newStage;
-    updateAnalytics();
-
-    // Call update API
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    
-    fetch(`/crm/lead/${leadId}/update/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: new URLSearchParams({ 'stage': newStage })
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('API request failed');
-        return response.json();
-    })
-    .then(data => {
-        if (data.status === 'ok') {
-            showToast(`Lead moved to "${newStage}" successfully!`, 'success');
-        } else {
-            throw new Error(data.message || 'Stage update failed');
-        }
-    })
-    .catch(err => {
-        console.error(err);
-        // Rollback on error
-        const sourceCardsContainer = sourceColumn.querySelector('.kanban-cards');
-        if (sourceCardsContainer) {
-            sourceCardsContainer.appendChild(card);
-            card.dataset.stage = oldStage;
-            updateAnalytics();
-        }
-        showToast('Failed to update stage. Reverting change.', 'error');
-    });
-}
-
-// Stage transfer via mobile menu
-function moveLeadViaMenu(leadId, targetStage) {
-    const card = document.querySelector(`.kanban-card[data-id="${leadId}"]`);
-    if (!card) return;
-    
-    const targetColumn = document.querySelector(`.kanban-column[data-stage="${targetStage}"]`);
-    if (!targetColumn) return;
-    
-    const targetCardsContainer = targetColumn.querySelector('.kanban-cards');
-    if (!targetCardsContainer) return;
-    
-    const sourceColumn = card.closest('.kanban-column');
-    if (!sourceColumn) return;
-    
-    const oldStage = sourceColumn.dataset.stage;
-    if (oldStage === targetStage) return;
-    
-    // Close card actions dropdown
-    const menu = document.getElementById(`menu-${leadId}`);
-    if (menu) menu.style.display = 'none';
-
-    // Optimistically move card in DOM and recalculate
-    targetCardsContainer.appendChild(card);
-    card.dataset.stage = targetStage;
-    updateAnalytics();
-
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    
-    fetch(`/crm/lead/${leadId}/update/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: new URLSearchParams({ 'stage': targetStage })
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('API request failed');
-        return response.json();
-    })
-    .then(data => {
-        if (data.status === 'ok') {
-            showToast(`Lead moved to "${targetStage}" successfully!`, 'success');
-        } else {
-            throw new Error(data.message || 'Stage update failed');
-        }
-    })
-    .catch(err => {
-        console.error(err);
-        // Rollback
-        const sourceCardsContainer = sourceColumn.querySelector('.kanban-cards');
-        if (sourceCardsContainer) {
-            sourceCardsContainer.appendChild(card);
-            card.dataset.stage = oldStage;
-            updateAnalytics();
-        }
-        showToast('Failed to update stage. Reverting change.', 'error');
-    });
-}
-
-// Toggle Actions Menu
-function toggleMenu(event, menuId) {
-    event.stopPropagation();
-    document.querySelectorAll('.card-menu').forEach(menu => {
-        if (menu.id !== menuId) menu.style.display = 'none';
-    });
-    
-    const menu = document.getElementById(menuId);
-    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-}
-
-document.addEventListener('click', function(event) {
-    if (!event.target.closest('.card-menu') && !event.target.closest('button[onclick^="toggleMenu"]')) {
-        document.querySelectorAll('.card-menu').forEach(menu => {
-            menu.style.display = 'none';
-        });
-    }
-});
-
-// Search functionality
-const searchInput = document.getElementById('crm-search');
-if (searchInput) {
-    searchInput.addEventListener('input', function(e) {
-        const query = e.target.value.toLowerCase().trim();
-        document.querySelectorAll('.kanban-card').forEach(card => {
-            const searchTerm = card.dataset.searchTerm || '';
-            if (!query || searchTerm.includes(query)) {
-                card.style.display = 'flex';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-        updateAnalytics();
-    });
-}
-
-// Calculate metrics and totals
-function updateAnalytics() {
-    let totalPipeline = 0;
-    let wonRevenue = 0;
-    let activeDealsCount = 0;
-    let wonDealsCount = 0;
-
-    document.querySelectorAll('.kanban-column').forEach(column => {
-        const stage = column.dataset.stage;
-        let columnTotal = 0;
-        let visibleCount = 0;
-
-        const cards = column.querySelectorAll('.kanban-card');
-        cards.forEach(card => {
-            if (card.style.display !== 'none') {
-                visibleCount++;
-                const revenue = parseFloat(card.dataset.revenue) || 0;
-                columnTotal += revenue;
-
-                if (stage === 'Won') {
-                    wonRevenue += revenue;
-                    wonDealsCount++;
-                } else {
-                    totalPipeline += revenue;
-                    activeDealsCount++;
-                }
-            }
-        });
-
-        // Update badges and column totals
-        const badge = document.getElementById('badge-' + stage);
-        if (badge) badge.textContent = visibleCount;
-
-        const totalEl = document.getElementById('total-' + stage);
-        if (totalEl) {
-            totalEl.textContent = 'AED ' + columnTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        // Toggle Empty Column visual states
-        const emptyState = document.getElementById('empty-state-' + stage);
-        const cardsContainer = document.getElementById('cards-container-' + stage);
-        if (emptyState && cardsContainer) {
-            if (visibleCount === 0) {
-                emptyState.style.display = 'flex';
-                cardsContainer.style.display = 'none';
-            } else {
-                emptyState.style.display = 'none';
-                cardsContainer.style.display = 'flex';
-            }
-        }
-    });
-
-    // Update main metrics summary
-    const totalCount = activeDealsCount + wonDealsCount;
-    const conversionRate = totalCount > 0 ? Math.round((wonDealsCount / totalCount) * 100) : 0;
-
-    const pipelineValEl = document.getElementById('metric-pipeline-value');
-    if (pipelineValEl) {
-        pipelineValEl.textContent = 'AED ' + totalPipeline.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    const wonValEl = document.getElementById('metric-won-value');
-    if (wonValEl) {
-        wonValEl.textContent = 'AED ' + wonRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    const activeDealsEl = document.getElementById('metric-active-deals');
-    if (activeDealsEl) {
-        activeDealsEl.textContent = activeDealsCount;
-    }
-
-    const conversionEl = document.getElementById('metric-conversion-rate');
-    if (conversionEl) {
-        conversionEl.textContent = conversionRate + '%';
-    }
-}
-
-// Initial calculation on load
-document.addEventListener("DOMContentLoaded", function() {
-    updateAnalytics();
-});
-</script>
 {% endblock %}

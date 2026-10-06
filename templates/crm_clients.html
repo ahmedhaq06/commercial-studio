@@ -1,0 +1,409 @@
+{% extends "crm_base.html" %}
+{% load static %}
+
+{% block title %}Active Clients — ROLF Sales CRM{% endblock %}
+
+{% block content %}
+<div class="content-container" style="max-width: 1400px; margin: 0 auto; padding: 1rem 1.5rem;">
+
+  <!-- Header & Control Bar -->
+  <div class="card" style="margin-bottom: 1rem; padding: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.35rem; font-weight: 700; color: var(--text);">Active Clients</h2>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--muted);">Customer accounts management, payment terms, credit limits, and order history</p>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <button onclick="document.getElementById('addClientModal').style.display='flex'" class="primary-button" style="padding: 0.45rem 1rem; font-size: 0.85rem;">+ Add Active Client</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="card" style="margin-bottom: 1rem; padding: 1rem;">
+    <form method="get" action="" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+      <input type="text" name="q" value="{{ query }}" placeholder="Search client ID, company, contact, city..." class="input-field" style="min-width: 220px; flex: 1; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+
+      <select name="status" class="input-field" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
+        <option value="">All Statuses</option>
+        <option value="Active" {% if selected_status == 'Active' %}selected{% endif %}>Active</option>
+        <option value="At Risk" {% if selected_status == 'At Risk' %}selected{% endif %}>At Risk</option>
+        <option value="Inactive" {% if selected_status == 'Inactive' %}selected{% endif %}>Inactive</option>
+        <option value="Suspended" {% if selected_status == 'Suspended' %}selected{% endif %}>Suspended</option>
+      </select>
+
+      <button type="submit" class="ghost-button" style="padding: 0.4rem 0.9rem; font-size: 0.85rem;">Filter</button>
+      <a href="/crm/clients/" class="ghost-button" style="padding: 0.4rem 0.9rem; font-size: 0.85rem; text-decoration: none;">Reset</a>
+    </form>
+  </div>
+
+  <!-- Active Clients Table -->
+  <div class="card" style="padding: 1.25rem;">
+    <div style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%; font-size: 0.82rem; white-space: nowrap;">
+        <thead>
+          <tr>
+            <th>Client ID</th>
+            <th>Company Name</th>
+            <th>Country / City</th>
+            <th>Segment</th>
+            <th>Contact Person</th>
+            <th>Phone / Email</th>
+            <th>Account Manager</th>
+            <th>Contract No.</th>
+            <th>Payment Terms</th>
+            <th style="text-align: right;">Credit Limit</th>
+            <th>Last Order Date</th>
+            <th style="text-align: right;">Last Order Value</th>
+            <th style="text-align: right;">Sales YTD</th>
+            <th style="text-align: right;">Avg Volume</th>
+            <th>Status</th>
+            <th>Alert</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for client in clients %}
+          <tr>
+            <td style="font-weight: 700; color: var(--accent-strong);">{{ client.client_code }}</td>
+            <td style="font-weight: 700;">{{ client.company_name }}</td>
+            <td>{{ client.country }} / {{ client.city }}</td>
+            <td><span class="tag-chip" style="font-size: 0.72rem;">{{ client.segment }}</span></td>
+            <td>
+              <div>{{ client.contact_name }}</div>
+              {% if client.position %}<small style="color: var(--muted);">{{ client.position }}</small>{% endif %}
+            </td>
+            <td>
+              <div>{{ client.phone|default:"-" }}</div>
+              {% if client.email %}<small style="color: var(--muted);">{{ client.email }}</small>{% endif %}
+            </td>
+            <td>{{ client.account_manager.username }}</td>
+            <td>{{ client.contract_no|default:"-" }}</td>
+            <td><span style="font-weight: 600;">{{ client.payment_terms }}</span></td>
+            <td style="text-align: right;">${{ client.credit_limit|floatformat:0 }}</td>
+            <td>{{ client.last_order_date|date:"Y-m-d"|default:"-" }}</td>
+            <td style="text-align: right;">${{ client.last_order_value|floatformat:0 }}</td>
+            <td style="text-align: right; font-weight: 700;">${{ client.sales_ytd|floatformat:0 }}</td>
+            <td style="text-align: right;">{{ client.avg_volume_liters|floatformat:0 }} L</td>
+            <td>
+              <span class="status-pill status-{{ client.status|slugify }}" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">{{ client.status }}</span>
+            </td>
+            <td>
+              {% if client.alert_status == 'At Risk' or client.alert_status == 'Overdue Order' %}
+                <span style="color: #ef4444; font-weight: 700; font-size: 0.72rem;">{{ client.alert_status }}</span>
+              {% elif client.alert_status == 'Overdue Follow-up' %}
+                <span style="color: #f59e0b; font-weight: 700; font-size: 0.72rem;">Overdue Follow-up</span>
+              {% else %}
+                <span style="color: #10b981; font-weight: 600; font-size: 0.72rem;">OK</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              <button type="button" onclick="openEditClientModal(this)"
+                data-id="{{ client.id }}"
+                data-company="{{ client.company_name }}"
+                data-contact="{{ client.contact_name }}"
+                data-position="{{ client.position|default:'' }}"
+                data-segment="{{ client.segment }}"
+                data-country="{{ client.country }}"
+                data-city="{{ client.city }}"
+                data-phone="{{ client.phone|default:'' }}"
+                data-email="{{ client.email|default:'' }}"
+                data-whatsapp="{{ client.whatsapp|default:'' }}"
+                data-manager="{{ client.account_manager.id }}"
+                data-since="{{ client.client_since|date:'Y-m-d'|default:'' }}"
+                data-contract="{{ client.contract_no|default:'' }}"
+                data-terms="{{ client.payment_terms }}"
+                data-credit="{{ client.credit_limit }}"
+                data-lastdate="{{ client.last_order_date|date:'Y-m-d'|default:'' }}"
+                data-lastval="{{ client.last_order_value }}"
+                data-ytd="{{ client.sales_ytd }}"
+                data-volume="{{ client.avg_volume_liters }}"
+                data-status="{{ client.status }}"
+                data-nextfollowup="{{ client.next_followup_date|date:'Y-m-d'|default:'' }}"
+                data-notes="{{ client.notes|default:'' }}"
+                class="ghost-button" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-right: 0.25rem;">Edit</button>
+
+              <form method="post" action="/crm/client/{{ client.id }}/delete/" style="display: inline;" onsubmit="return confirm('Delete this client account?');">
+                {% csrf_token %}
+                <button type="submit" class="ghost-button" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #ef4444;">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="17" style="text-align: center; color: var(--muted); padding: 2rem;">No active clients found. Click "Add Active Client" to register account.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Client Modal -->
+<div id="addClientModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 1rem;">
+  <div class="card" style="width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; padding: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Add Active Client</h3>
+      <button onclick="document.getElementById('addClientModal').style.display='none'" class="ghost-button" style="padding: 0.2rem 0.5rem;">&times;</button>
+    </div>
+
+    <form method="post" action="/crm/client/create/">
+      {% csrf_token %}
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Company Name *</label>
+          <input type="text" name="company_name" required class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Contact Person *</label>
+          <input type="text" name="contact_name" required class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Position</label>
+          <input type="text" name="position" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Segment</label>
+          <select name="segment" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+            <option value="Retailer / Shop">Retailer / Shop</option>
+            <option value="Distributor">Distributor</option>
+            <option value="Wholesaler">Wholesaler</option>
+            <option value="Workshop / Service">Workshop / Service</option>
+            <option value="Fleet / Transport">Fleet / Transport</option>
+            <option value="Industrial">Industrial</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Country</label>
+          <input type="text" name="country" value="United Arab Emirates" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">City</label>
+          <input type="text" name="city" value="Sharjah" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Payment Terms</label>
+          <select name="payment_terms" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+            <option value="Net 30">Net 30</option>
+            <option value="Net 15">Net 15</option>
+            <option value="Net 45">Net 45</option>
+            <option value="Net 60">Net 60</option>
+            <option value="Prepayment">Prepayment</option>
+            <option value="Cash on delivery">Cash on delivery</option>
+            <option value="Letter of credit">Letter of credit</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Credit Limit (USD)</label>
+          <input type="number" step="0.01" name="credit_limit" value="20000" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Last Order Date</label>
+          <input type="date" name="last_order_date" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Last Order Value ($)</label>
+          <input type="number" step="0.01" name="last_order_value" value="0" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Sales YTD ($)</label>
+          <input type="number" step="0.01" name="sales_ytd" value="0" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Avg Volume (L/month)</label>
+          <input type="number" step="0.01" name="avg_volume_liters" value="0" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Account Manager</label>
+          <select name="account_manager" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+            {% for u in sales_users %}
+              <option value="{{ u.id }}" {% if user.id == u.id %}selected{% endif %}>{{ u.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Status</label>
+          <select name="status" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+            <option value="Active">Active</option>
+            <option value="At Risk">At Risk</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Suspended">Suspended</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button type="button" onclick="document.getElementById('addClientModal').style.display='none'" class="ghost-button">Cancel</button>
+        <button type="submit" class="primary-button">Save Client Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Client Modal -->
+<div id="editClientModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 1rem;">
+  <div class="card" style="width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; padding: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Edit Client Account</h3>
+      <button onclick="document.getElementById('editClientModal').style.display='none'" class="ghost-button" style="padding: 0.2rem 0.5rem;">&times;</button>
+    </div>
+
+    <form id="editClientForm" method="post" action="">
+      {% csrf_token %}
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Company Name *</label>
+          <input type="text" id="edit_client_company" name="company_name" required class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Contact Person *</label>
+          <input type="text" id="edit_client_contact" name="contact_name" required class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Position</label>
+          <input type="text" id="edit_client_position" name="position" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Segment</label>
+          <select id="edit_client_segment" name="segment" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+            <option value="Retailer / Shop">Retailer / Shop</option>
+            <option value="Distributor">Distributor</option>
+            <option value="Wholesaler">Wholesaler</option>
+            <option value="Workshop / Service">Workshop / Service</option>
+            <option value="Fleet / Transport">Fleet / Transport</option>
+            <option value="Industrial">Industrial</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Country</label>
+          <input type="text" id="edit_client_country" name="country" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">City</label>
+          <input type="text" id="edit_client_city" name="city" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Phone</label>
+          <input type="text" id="edit_client_phone" name="phone" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Email</label>
+          <input type="email" id="edit_client_email" name="email" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Payment Terms</label>
+          <select id="edit_client_terms" name="payment_terms" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+            <option value="Net 30">Net 30</option>
+            <option value="Net 15">Net 15</option>
+            <option value="Net 45">Net 45</option>
+            <option value="Net 60">Net 60</option>
+            <option value="Prepayment">Prepayment</option>
+            <option value="Cash on delivery">Cash on delivery</option>
+            <option value="Letter of credit">Letter of credit</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Credit Limit (USD)</label>
+          <input type="number" step="0.01" id="edit_client_credit" name="credit_limit" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Last Order Date</label>
+          <input type="date" id="edit_client_lastdate" name="last_order_date" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Last Order Value ($)</label>
+          <input type="number" step="0.01" id="edit_client_lastval" name="last_order_value" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Sales YTD ($)</label>
+          <input type="number" step="0.01" id="edit_client_ytd" name="sales_ytd" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Avg Volume (L/month)</label>
+          <input type="number" step="0.01" id="edit_client_volume" name="avg_volume_liters" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Account Manager</label>
+          <select id="edit_client_manager" name="account_manager" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+            {% for u in sales_users %}
+              <option value="{{ u.id }}">{{ u.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600;">Status</label>
+          <select id="edit_client_status" name="status" class="input-field" style="width: 100%; margin-top: 0.2rem;">
+            <option value="Active">Active</option>
+            <option value="At Risk">At Risk</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Suspended">Suspended</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button type="button" onclick="document.getElementById('editClientModal').style.display='none'" class="ghost-button">Cancel</button>
+        <button type="submit" class="primary-button">Update Client Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openEditClientModal(btn) {
+    const d = btn.dataset;
+    document.getElementById('editClientForm').action = '/crm/client/' + d.id + '/edit/';
+    document.getElementById('edit_client_company').value = d.company || '';
+    document.getElementById('edit_client_contact').value = d.contact || '';
+    document.getElementById('edit_client_position').value = d.position || '';
+    document.getElementById('edit_client_segment').value = d.segment || 'Retailer / Shop';
+    document.getElementById('edit_client_country').value = d.country || '';
+    document.getElementById('edit_client_city').value = d.city || '';
+    document.getElementById('edit_client_phone').value = d.phone || '';
+    document.getElementById('edit_client_email').value = d.email || '';
+    document.getElementById('edit_client_terms').value = d.terms || 'Net 30';
+    document.getElementById('edit_client_credit').value = d.credit || '0';
+    document.getElementById('edit_client_lastdate').value = d.lastdate || '';
+    document.getElementById('edit_client_lastval').value = d.lastval || '0';
+    document.getElementById('edit_client_ytd').value = d.ytd || '0';
+    document.getElementById('edit_client_volume').value = d.volume || '0';
+    document.getElementById('edit_client_status').value = d.status || 'Active';
+    if (d.manager) {
+      document.getElementById('edit_client_manager').value = d.manager;
+    }
+    document.getElementById('editClientModal').style.display = 'flex';
+  }
+</script>
+{% endblock %}

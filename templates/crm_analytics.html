@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "crm_base.html" %}
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -119,7 +119,6 @@
 <!-- Stale Leads Alert -->
 {% if stale_leads_count > 5 %}
 <div class="alert-box-danger">
-  <span>⚠️</span>
   <span>WARNING: There are <strong>{{ stale_leads_count }}</strong> stale leads in the pipeline that haven't been updated in over 30 days. Please review and update.</span>
 </div>
 {% endif %}

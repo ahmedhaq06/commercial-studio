@@ -283,6 +283,14 @@ a {
   padding: 24px;
 }
 
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
 .section-head {
   display: flex;
   justify-content: space-between;
@@ -464,21 +472,40 @@ a {
   margin: 0;
 }
 
-.form-grid input, .form-grid select, .auth-form input, .auth-form select {
+.form-grid input, .form-grid select, .auth-form input, .auth-form select, .input-field {
   width: 100%;
   margin-top: 6px;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
   outline: none;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
-.form-grid input:focus, .form-grid select:focus, .auth-form input:focus, .auth-form select:focus {
+.form-grid input:focus, .form-grid select:focus, .auth-form input:focus, .auth-form select:focus, .input-field:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 143, 93, 0.15);
+  box-shadow: 0 0 0 3px rgba(255, 143, 93, 0.18);
+}
+
+.input-field::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+select.input-field {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+  padding-right: 34px;
+  cursor: pointer;
 }
 
 .form-actions {

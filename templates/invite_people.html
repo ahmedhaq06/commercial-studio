@@ -83,6 +83,9 @@
     <div class="list-row">
       <div>
         <strong>{{ member.username }}</strong>
+        {% if member.email %}
+          <small style="color: var(--muted); display: block;">{{ member.email }}</small>
+        {% endif %}
         <span>
           {% if member.username == admin_username %}
             Admin
@@ -95,6 +98,7 @@
           {% endif %}
         </span>
       </div>
+
       <div class="list-meta">
         {% if member.username != admin_username %}
         <form method="post" style="display: inline;">

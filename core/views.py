@@ -486,15 +486,14 @@ def invite_people(request):
                         group, _ = Group.objects.get_or_create(name="Production")
                         created_user.groups.add(group)
 
-                    email_line = f"Email: {email}\n" if email else ""
                     invite_text = (
                         "Join our company's private collaborative pricing and sales studio.\n\n"
                         f"Login URL: {request.build_absolute_uri('/accounts/login/')}\n"
-                        f"{email_line}"
-                        f"Username: {created_user.username}\n"
+                        f"Email: {created_user.email or created_user.username}\n"
                         f"Password: {password}\n\n"
-                        "You can sign in using either your email or username (case-insensitive)."
+                        "Use your email address and password to sign in."
                     )
+
 
         elif action == "delete":
             username = (request.POST.get("username") or "").strip()

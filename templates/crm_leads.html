@@ -15,7 +15,7 @@
       </div>
 
       <div style="display: flex; gap: 0.75rem; align-items: center;">
-        <button onclick="document.getElementById('addLeadModal').style.display='flex'" class="primary-button" style="padding: 0.45rem 1rem; font-size: 0.85rem;">+ Add New Prospect</button>
+        <button type="button" onclick="document.getElementById('addLeadModal').style.display='flex'" class="primary-button" style="padding: 0.45rem 1rem; font-size: 0.85rem;">+ Add New Prospect</button>
       </div>
     </div>
   </div>
@@ -27,28 +27,28 @@
 
       <select name="status" class="input-field" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
         <option value="">All Statuses</option>
-        <option value="New" {% if selected_status == 'New' %}selected{% endif %}>New</option>
-        <option value="Contacted" {% if selected_status == 'Contacted' %}selected{% endif %}>Contacted</option>
-        <option value="Interested" {% if selected_status == 'Interested' %}selected{% endif %}>Interested</option>
-        <option value="Samples Sent" {% if selected_status == 'Samples Sent' %}selected{% endif %}>Samples Sent</option>
-        <option value="Offer Sent" {% if selected_status == 'Offer Sent' %}selected{% endif %}>Offer Sent</option>
-        <option value="Negotiation" {% if selected_status == 'Negotiation' %}selected{% endif %}>Negotiation</option>
-        <option value="Won" {% if selected_status == 'Won' %}selected{% endif %}>Won</option>
-        <option value="Lost" {% if selected_status == 'Lost' %}selected{% endif %}>Lost</option>
-        <option value="On Hold" {% if selected_status == 'On Hold' %}selected{% endif %}>On Hold</option>
+        <option value="New" {% if selected_status == 'New' %}selected="selected"{% endif %}>New</option>
+        <option value="Contacted" {% if selected_status == 'Contacted' %}selected="selected"{% endif %}>Contacted</option>
+        <option value="Interested" {% if selected_status == 'Interested' %}selected="selected"{% endif %}>Interested</option>
+        <option value="Samples Sent" {% if selected_status == 'Samples Sent' %}selected="selected"{% endif %}>Samples Sent</option>
+        <option value="Offer Sent" {% if selected_status == 'Offer Sent' %}selected="selected"{% endif %}>Offer Sent</option>
+        <option value="Negotiation" {% if selected_status == 'Negotiation' %}selected="selected"{% endif %}>Negotiation</option>
+        <option value="Won" {% if selected_status == 'Won' %}selected="selected"{% endif %}>Won</option>
+        <option value="Lost" {% if selected_status == 'Lost' %}selected="selected"{% endif %}>Lost</option>
+        <option value="On Hold" {% if selected_status == 'On Hold' %}selected="selected"{% endif %}>On Hold</option>
       </select>
 
       <select name="priority" class="input-field" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
         <option value="">All Priorities</option>
-        <option value="Hot" {% if selected_priority == 'Hot' %}selected{% endif %}>Hot</option>
-        <option value="Warm" {% if selected_priority == 'Warm' %}selected{% endif %}>Warm</option>
-        <option value="Cold" {% if selected_priority == 'Cold' %}selected{% endif %}>Cold</option>
+        <option value="Hot" {% if selected_priority == 'Hot' %}selected="selected"{% endif %}>Hot</option>
+        <option value="Warm" {% if selected_priority == 'Warm' %}selected="selected"{% endif %}>Warm</option>
+        <option value="Cold" {% if selected_priority == 'Cold' %}selected="selected"{% endif %}>Cold</option>
       </select>
 
       <select name="manager" class="input-field" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
         <option value="">All Sales Reps</option>
         {% for u in sales_users %}
-          <option value="{{ u.id }}" {% if selected_manager == u.id %}selected{% endif %}>{{ u.username }}</option>
+          <option value="{{ u.id }}" {% if selected_manager == u.id %}selected="selected"{% endif %}>{{ u.username }}</option>
         {% endfor %}
       </select>
 
@@ -121,30 +121,30 @@
                 <span style="color: var(--muted); font-size: 0.72rem;">None</span>
               {% endif %}
             </td>
-            <td>{{ lead.salesperson.username }}</td>
+            <td>{{ lead.salesperson.username|default:"-" }}</td>
             <td style="text-align: right;">
               <button type="button" onclick="openEditLeadModal(this)"
                 data-id="{{ lead.id }}"
-                data-code="{{ lead.lead_code|default:'' }}"
-                data-company="{{ lead.company_name }}"
-                data-contact="{{ lead.contact_name }}"
-                data-position="{{ lead.position|default:'' }}"
-                data-email="{{ lead.contact_email|default:'' }}"
-                data-segment="{{ lead.segment }}"
-                data-source="{{ lead.source|default:'Exhibition' }}"
-                data-country="{{ lead.country }}"
-                data-city="{{ lead.city }}"
-                data-phone="{{ lead.contact_phone|default:'' }}"
-                data-whatsapp="{{ lead.whatsapp|default:'' }}"
-                data-stage="{{ lead.stage }}"
-                data-priority="{{ lead.priority }}"
+                data-code="{{ lead.lead_code|default:'L-0000'|escape }}"
+                data-company="{{ lead.company_name|escape }}"
+                data-contact="{{ lead.contact_name|escape }}"
+                data-position="{{ lead.position|default:''|escape }}"
+                data-email="{{ lead.contact_email|default:''|escape }}"
+                data-segment="{{ lead.segment|escape }}"
+                data-source="{{ lead.source|default:'Exhibition'|escape }}"
+                data-country="{{ lead.country|escape }}"
+                data-city="{{ lead.city|escape }}"
+                data-phone="{{ lead.contact_phone|default:''|escape }}"
+                data-whatsapp="{{ lead.whatsapp|default:''|escape }}"
+                data-stage="{{ lead.stage|escape }}"
+                data-priority="{{ lead.priority|escape }}"
                 data-revenue="{{ lead.revenue }}"
                 data-volume="{{ lead.est_volume_liters }}"
-                data-products="{{ lead.products_of_interest|default:'' }}"
-                data-action="{{ lead.next_action|default:'' }}"
+                data-products="{{ lead.products_of_interest|default:''|escape }}"
+                data-action="{{ lead.next_action|default:''|escape }}"
                 data-actiondate="{{ lead.next_action_date|date:'Y-m-d'|default:'' }}"
-                data-comments="{{ lead.comments|default:'' }}"
-                data-salesperson="{{ lead.salesperson.id }}"
+                data-comments="{{ lead.comments|default:''|escape }}"
+                data-salesperson="{{ lead.salesperson_id|default:'' }}"
                 class="ghost-button" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Edit</button>
             </td>
           </tr>
@@ -310,7 +310,7 @@
             <label class="form-field-label">Assigned Sales Rep</label>
             <select name="salesperson" class="input-field">
               {% for u in sales_users %}
-                <option value="{{ u.id }}" {% if user.id == u.id %}selected{% endif %}>{{ u.username }}</option>
+                <option value="{{ u.id }}" {% if user.id == u.id %}selected="selected"{% endif %}>{{ u.username }}</option>
               {% endfor %}
             </select>
           </div>
@@ -493,8 +493,12 @@
       </div>
 
       <div class="crm-modal-footer">
+        <form id="deleteLeadForm" method="post" action="" style="margin-right: auto; margin-bottom: 0;" onsubmit="return confirm('Are you sure you want to delete this prospect lead? This action cannot be undone.');">
+          {% csrf_token %}
+          <button type="submit" class="ghost-button" style="color: var(--status-danger, #ef4444); border-color: rgba(239, 68, 68, 0.3); border-radius: 8px; font-size: 0.88rem; padding: 8px 14px;">Delete Lead</button>
+        </form>
         <button type="button" onclick="document.getElementById('editLeadModal').style.display='none'" class="ghost-button" style="border-radius: 8px; font-size: 0.88rem; padding: 8px 16px;">Cancel</button>
-        <button type="submit" class="primary-button" style="border-radius: 8px; font-size: 0.88rem; padding: 8px 20px;">Update Lead</button>
+        <button type="button" onclick="document.getElementById('editLeadForm').submit()" class="primary-button" style="border-radius: 8px; font-size: 0.88rem; padding: 8px 20px;">Update Lead</button>
       </div>
     </form>
   </div>
@@ -504,6 +508,10 @@
   function openEditLeadModal(btn) {
     const d = btn.dataset;
     document.getElementById('editLeadForm').action = '/crm/lead/' + d.id + '/edit/';
+    const delForm = document.getElementById('deleteLeadForm');
+    if (delForm) {
+      delForm.action = '/crm/lead/' + d.id + '/delete/';
+    }
     document.getElementById('edit_company_name').value = d.company || '';
     document.getElementById('edit_contact_name').value = d.contact || '';
     document.getElementById('edit_position').value = d.position || '';
@@ -532,7 +540,7 @@
     document.getElementById('editLeadModal').style.display = 'flex';
   }
 
-  // Backdrop click and ESC key listeners
+  // Backdrop click listeners
   window.addEventListener('click', function(e) {
     if (e.target.id === 'editLeadModal') {
       document.getElementById('editLeadModal').style.display = 'none';
@@ -542,6 +550,7 @@
     }
   });
 
+  // ESC key listener
   window.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       const editM = document.getElementById('editLeadModal');

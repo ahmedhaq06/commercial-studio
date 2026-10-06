@@ -1,4 +1,8 @@
 {% extends "crm_base.html" %}
+{% load static %}
+
+{% block title %}Sales Analytics — ROLF Sales CRM{% endblock %}
+
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -10,11 +14,11 @@
 }
 .alert-box-danger {
   background: rgba(239, 68, 68, 0.06);
-  border: 1px solid var(--status-danger);
-  color: var(--status-danger);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--status-danger, #ef4444);
+  color: var(--status-danger, #ef4444);
+  border-radius: var(--radius-lg, 12px);
   padding: 1rem 1.25rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -26,12 +30,12 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.25rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 .crm-metric-card {
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
+  background: var(--surface-strong, #ffffff);
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
   padding: 1.25rem;
   box-shadow: 0 4px 12px rgba(32, 47, 70, 0.04);
   display: flex;
@@ -39,7 +43,7 @@
   gap: 0.35rem;
 }
 .crm-metric-card .metric-label {
-  color: var(--muted);
+  color: var(--muted, #737373);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -47,15 +51,18 @@
 }
 .crm-metric-card .metric-val {
   font-size: 1.75rem;
-  color: var(--text);
+  color: var(--text, #171717);
   font-weight: 800;
+}
+.crm-metric-card .metric-val.is-danger {
+  color: var(--status-danger, #ef4444);
 }
 .panel-card h3 {
   margin-top: 0;
   font-size: 1.1rem;
   font-weight: 800;
-  color: var(--text);
-  border-bottom: 1px solid var(--line);
+  color: var(--text, #171717);
+  border-bottom: 1px solid var(--line, #e5e7eb);
   padding-bottom: 0.75rem;
   margin-bottom: 1.25rem;
   display: flex;
@@ -67,7 +74,7 @@
   height: 100%;
   align-items: center;
   justify-content: center;
-  color: var(--muted);
+  color: var(--muted, #737373);
   font-size: 0.85rem;
   font-weight: 500;
   flex-direction: column;
@@ -76,10 +83,10 @@
 .funnel-dropoff-summary {
   display: flex;
   justify-content: space-between;
-  background: var(--surface-strong);
+  background: var(--surface-strong, #fcfcfc);
   padding: 0.75rem 1rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--line, #e5e7eb);
   margin-top: 1rem;
   font-size: 0.8rem;
 }
@@ -91,347 +98,388 @@
   text-align: center;
 }
 .funnel-step:not(:last-child) {
-  border-right: 1px solid var(--line);
+  border-right: 1px solid var(--line, #e5e7eb);
 }
 .funnel-step span.lbl {
-  color: var(--muted);
+  color: var(--muted, #737373);
   font-weight: 600;
   margin-bottom: 2px;
 }
 .funnel-step span.val {
   font-weight: 800;
-  color: var(--text);
+  color: var(--text, #171717);
 }
 .funnel-step span.drop {
-  color: var(--status-danger);
+  color: var(--status-danger, #ef4444);
   font-weight: 700;
   margin-top: 2px;
 }
 </style>
 
-<div class="page-header">
-  <div>
-    <p class="eyebrow">CRM Reporting</p>
-    <h2>Sales Analytics</h2>
-  </div>
-</div>
-
-<!-- Stale Leads Alert -->
-{% if stale_leads_count > 5 %}
-<div class="alert-box-danger">
-  <span>WARNING: There are <strong>{{ stale_leads_count }}</strong> stale leads in the pipeline that haven't been updated in over 30 days. Please review and update.</span>
-</div>
-{% endif %}
-
-<!-- KPI Header Row -->
-<div class="crm-metrics-grid">
-  <div class="crm-metric-card">
-    <span class="metric-label">Total Pipeline Value</span>
-    <strong class="metric-val">AED {{ total_pipeline_value|floatformat:2 }}</strong>
-  </div>
-  <div class="crm-metric-card">
-    <span class="metric-label">Global Win Rate</span>
-    <strong class="metric-val" style="color: var(--status-success);">{{ global_win_rate|floatformat:1 }}%</strong>
-  </div>
-  <div class="crm-metric-card">
-    <span class="metric-label">Stale Leads Count</span>
-    <strong class="metric-val" style="{% if stale_leads_count > 5 %}color: var(--status-danger);{% endif %}">{{ stale_leads_count }}</strong>
-  </div>
-</div>
-
-<!-- Row 2: Line + Bar Charts -->
-<div class="grid-two" style="margin-bottom: 1.5rem;">
-  <div class="panel-card">
-    <h3>Monthly Won Revenue <span style="font-size: 0.75rem; color: var(--muted); font-weight: 500;">(12 Months)</span></h3>
-    <div class="chart-container" id="revenue-container">
-      <canvas id="chart-revenue"></canvas>
-    </div>
-  </div>
-  
-  <div class="panel-card">
-    <h3>Sales Rep Win Rates <span style="font-size: 0.75rem; color: var(--muted); font-weight: 500;">(Won / Assigned)</span></h3>
-    <div class="chart-container" id="winrates-container">
-      <canvas id="chart-winrates"></canvas>
-    </div>
-  </div>
-</div>
-
-<!-- Row 3: Pie + Funnel Charts -->
-<div class="grid-two" style="margin-bottom: 1.5rem;">
-  <div class="panel-card">
-    <h3>Top 10 Products Sold <span style="font-size: 0.75rem; color: var(--muted); font-weight: 500;">(Volume)</span></h3>
-    <div class="chart-container" id="products-container">
-      <canvas id="chart-products"></canvas>
-    </div>
-  </div>
-  
-  <div class="panel-card" style="display: flex; flex-direction: column;">
-    <h3>Lead Conversion Funnel <span style="font-size: 0.75rem; color: var(--muted); font-weight: 500;">(Active Counts)</span></h3>
-    <div class="chart-container" style="flex: 1;" id="funnel-container">
-      <canvas id="chart-funnel"></canvas>
-    </div>
-    
-    <!-- Funnel Dropoff Summary -->
-    <div class="funnel-dropoff-summary" id="funnel-summary-block">
-      <div class="funnel-step">
-        <span class="lbl">New → Qualified</span>
-        <span class="val" id="funnel-val-new-qual">0%</span>
-        <span class="drop" id="funnel-drop-new-qual">0% drop</span>
+<div class="content-container" style="max-width: 1400px; margin: 0 auto; padding: 1rem 1.5rem;">
+  <!-- Header Bar -->
+  <div class="card" style="margin-bottom: 1rem; padding: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.35rem; font-weight: 700; color: var(--text);">Sales Analytics</h2>
+        <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--muted);">Conversion funnel, revenue trends, sales representative win rates, and pipeline health</p>
       </div>
-      <div class="funnel-step">
-        <span class="lbl">Qual. → Prop.</span>
-        <span class="val" id="funnel-val-qual-prop">0%</span>
-        <span class="drop" id="funnel-drop-qual-prop">0% drop</span>
-      </div>
-      <div class="funnel-step">
-        <span class="lbl">Prop. → Won</span>
-        <span class="val" id="funnel-val-prop-won">0%</span>
-        <span class="drop" id="funnel-drop-prop-won">0% drop</span>
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <a href="/crm/leads/" class="ghost-button" style="padding: 0.45rem 1rem; font-size: 0.85rem;">View Leads Pipeline</a>
+        <a href="/crm/" class="primary-button" style="padding: 0.45rem 1rem; font-size: 0.85rem;">CRM Control Dashboard</a>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Row 4: Deal Size Trend Line Chart -->
-<div class="panel-card" style="margin-bottom: 2rem;">
-  <h3>Average Deal Size Trend <span style="font-size: 0.75rem; color: var(--muted); font-weight: 500;">(Won Leads - 6 Months)</span></h3>
-  <div class="chart-container" style="height: 280px;" id="dealsize-container">
-    <canvas id="chart-dealsize"></canvas>
+  <!-- Stale Leads Alert -->
+  {% if stale_leads_count > 5 %}
+  <div class="alert-box-danger">
+    <span>⚠️ WARNING: There are <strong>{{ stale_leads_count }}</strong> stale leads in the pipeline that haven't been updated in over 30 days. Please review and update.</span>
+  </div>
+  {% endif %}
+
+  <!-- KPI Header Row -->
+  <div class="crm-metrics-grid">
+    <div class="crm-metric-card">
+      <span class="metric-label">Total Pipeline Value</span>
+      <strong class="metric-val">AED {{ total_pipeline_value|floatformat:2 }}</strong>
+    </div>
+    <div class="crm-metric-card">
+      <span class="metric-label">Global Win Rate</span>
+      <strong class="metric-val" style="color: var(--status-success, #10b981);">{{ global_win_rate|floatformat:1 }}%</strong>
+    </div>
+    <div class="crm-metric-card">
+      <span class="metric-label">Stale Leads Count</span>
+      <strong class="metric-val {% if stale_leads_count > 5 %}is-danger{% endif %}">{{ stale_leads_count }}</strong>
+    </div>
+  </div>
+
+  <!-- Row 2: Line + Bar Charts -->
+  <div class="grid-two" style="margin-bottom: 1.5rem;">
+    <div class="panel-card">
+      <h3>Monthly Won Revenue <span style="font-size: 0.75rem; color: var(--muted); font-weight: 500;">(12 Months)</span></h3>
+      <div class="chart-container" id="revenue-container">
+        <canvas id="chart-revenue"></canvas>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h3>Sales Rep Win Rates <span style="font-size: 0.75rem; color: var(--muted); font-weight: 500;">(Won / Assigned)</span></h3>
+      <div class="chart-container" id="winrates-container">
+        <canvas id="chart-winrates"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Pie + Funnel Charts -->
+  <div class="grid-two" style="margin-bottom: 1.5rem;">
+    <div class="panel-card">
+      <h3>Top 10 Products Sold <span style="font-size: 0.75rem; color: var(--muted); font-weight: 500;">(Volume)</span></h3>
+      <div class="chart-container" id="products-container">
+        <canvas id="chart-products"></canvas>
+      </div>
+    </div>
+
+    <div class="panel-card" style="display: flex; flex-direction: column;">
+      <h3>Lead Conversion Funnel <span style="font-size: 0.75rem; color: var(--muted); font-weight: 500;">(Active Counts)</span></h3>
+      <div class="chart-container" style="flex: 1;" id="funnel-container">
+        <canvas id="chart-funnel"></canvas>
+      </div>
+
+      <!-- Funnel Dropoff Summary -->
+      <div class="funnel-dropoff-summary" id="funnel-summary-block">
+        <div class="funnel-step">
+          <span class="lbl">New → Qualified</span>
+          <span class="val" id="funnel-val-new-qual">0%</span>
+          <span class="drop" id="funnel-drop-new-qual">0% drop</span>
+        </div>
+        <div class="funnel-step">
+          <span class="lbl">Qual. → Prop.</span>
+          <span class="val" id="funnel-val-qual-prop">0%</span>
+          <span class="drop" id="funnel-drop-qual-prop">0% drop</span>
+        </div>
+        <div class="funnel-step">
+          <span class="lbl">Prop. → Won</span>
+          <span class="val" id="funnel-val-prop-won">0%</span>
+          <span class="drop" id="funnel-drop-prop-won">0% drop</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Deal Size Trend Line Chart -->
+  <div class="panel-card" style="margin-bottom: 2rem;">
+    <h3>Average Deal Size Trend <span style="font-size: 0.75rem; color: var(--muted); font-weight: 500;">(Won Leads - 6 Months)</span></h3>
+    <div class="chart-container" style="height: 280px;" id="dealsize-container">
+      <canvas id="chart-dealsize"></canvas>
+    </div>
   </div>
 </div>
 
-<!-- Raw analytics JSON -->
+<!-- Raw analytics JSON data payload -->
 <script id="analytics-data" type="application/json">{{ analytics_data_json|safe }}</script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    const data = JSON.parse(document.getElementById('analytics-data').textContent);
-    
+    let data = {
+        monthly_revenue: [],
+        win_rates: [],
+        top_products: [],
+        funnel: { New: 0, Qualified: 0, Proposition: 0, Won: 0, dropoffs: {} },
+        deal_sizes: []
+    };
+
+    try {
+        const dataElem = document.getElementById('analytics-data');
+        if (dataElem && dataElem.textContent.trim()) {
+            data = JSON.parse(dataElem.textContent);
+        }
+    } catch (e) {
+        console.error("Error parsing analytics JSON data:", e);
+    }
+
     // Theme Colors
     const orangeAccent = '#ff8f5d';
     const orangeAccentHover = '#e76f41';
     const gridLineColor = '#e5e7eb';
-    const textMainColor = '#171717';
     const textMutedColor = '#737373';
-    
-    Chart.defaults.font.family = '"Plus Jakarta Sans", "Segoe UI", sans-serif';
-    Chart.defaults.color = textMutedColor;
+
+    if (window.Chart) {
+        Chart.defaults.font.family = '"Plus Jakarta Sans", "Segoe UI", sans-serif';
+        Chart.defaults.color = textMutedColor;
+    }
 
     // Helper: Show Empty State inside canvas container
-    function renderEmptyPlaceholder(containerId, message = "No data available in this range") {
+    function renderEmptyPlaceholder(containerId, message) {
         const container = document.getElementById(containerId);
+        if (!container) return;
         container.innerHTML = `
             <div class="empty-chart-placeholder">
                 <span style="font-size: 1.5rem;">📊</span>
-                <span>${message}</span>
+                <span>${message || "No data available in this range"}</span>
             </div>
         `;
     }
 
     // 1. Monthly Revenue Chart (Line Chart)
-    const revLabels = data.monthly_revenue.map(item => item.month);
-    const revValues = data.monthly_revenue.map(item => item.revenue);
+    const monthlyRev = data.monthly_revenue || [];
+    const revLabels = monthlyRev.map(item => item.month);
+    const revValues = monthlyRev.map(item => item.revenue);
     const hasRevenue = revValues.some(v => v > 0);
 
     if (!hasRevenue) {
         renderEmptyPlaceholder('revenue-container', 'No won revenue recorded in the last 12 months.');
     } else {
-        new Chart(document.getElementById('chart-revenue'), {
-            type: 'line',
-            data: {
-                labels: revLabels,
-                datasets: [{
-                    label: 'Won Revenue (AED)',
-                    data: revValues,
-                    borderColor: orangeAccent,
-                    backgroundColor: 'rgba(255, 143, 93, 0.08)',
-                    fill: true,
-                    tension: 0.3,
-                    borderWidth: 2,
-                    pointBackgroundColor: orangeAccent,
-                    pointHoverBackgroundColor: orangeAccentHover
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+        const revCanvas = document.getElementById('chart-revenue');
+        if (revCanvas) {
+            new Chart(revCanvas, {
+                type: 'line',
+                data: {
+                    labels: revLabels,
+                    datasets: [{
+                        label: 'Won Revenue (AED)',
+                        data: revValues,
+                        borderColor: orangeAccent,
+                        backgroundColor: 'rgba(255, 143, 93, 0.08)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointBackgroundColor: orangeAccent,
+                        pointHoverBackgroundColor: orangeAccentHover
+                    }]
                 },
-                scales: {
-                    x: { grid: { color: 'transparent' }, ticks: { color: textMutedColor } },
-                    y: { grid: { color: gridLineColor }, ticks: { color: textMutedColor } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'transparent' }, ticks: { color: textMutedColor } },
+                        y: { grid: { color: gridLineColor }, ticks: { color: textMutedColor } }
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     // 2. Win Rate by Sales Rep (Bar Chart)
-    const winrateLabels = data.win_rates.map(item => item.name);
-    const winrateValues = data.win_rates.map(item => item.win_rate);
+    const winRates = data.win_rates || [];
+    const winrateLabels = winRates.map(item => item.name);
+    const winrateValues = winRates.map(item => item.win_rate);
     const hasWinRates = winrateValues.length > 0;
 
     if (!hasWinRates) {
         renderEmptyPlaceholder('winrates-container', 'No active sales reps assigned to leads.');
     } else {
-        new Chart(document.getElementById('chart-winrates'), {
-            type: 'bar',
-            data: {
-                labels: winrateLabels,
-                datasets: [{
-                    label: 'Win Rate (%)',
-                    data: winrateValues,
-                    backgroundColor: orangeAccent,
-                    hoverBackgroundColor: orangeAccentHover,
-                    borderRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+        const winCanvas = document.getElementById('chart-winrates');
+        if (winCanvas) {
+            new Chart(winCanvas, {
+                type: 'bar',
+                data: {
+                    labels: winrateLabels,
+                    datasets: [{
+                        label: 'Win Rate (%)',
+                        data: winrateValues,
+                        backgroundColor: orangeAccent,
+                        hoverBackgroundColor: orangeAccentHover,
+                        borderRadius: 6
+                    }]
                 },
-                scales: {
-                    x: { grid: { color: 'transparent' }, ticks: { color: textMutedColor } },
-                    y: { grid: { color: gridLineColor }, min: 0, max: 100, ticks: { callback: value => value + '%', color: textMutedColor } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'transparent' }, ticks: { color: textMutedColor } },
+                        y: { grid: { color: gridLineColor }, min: 0, max: 100, ticks: { callback: value => value + '%', color: textMutedColor } }
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     // 3. Top 10 Products Sold (Pie/Doughnut Chart)
-    const prodLabels = data.top_products.map(item => item.product);
-    const prodValues = data.top_products.map(item => item.quantity);
+    const topProds = data.top_products || [];
+    const prodLabels = topProds.map(item => item.product);
+    const prodValues = topProds.map(item => item.quantity);
     const hasProducts = prodValues.length > 0;
 
     if (!hasProducts) {
         renderEmptyPlaceholder('products-container', 'No product sales recorded in won leads or quotations.');
     } else {
-        // Monochromatic Orange Palette (respecting brand guidelines)
         const backgroundColors = prodValues.map((_, i) => {
-            const opacity = 1.0 - (i * 0.08); // fade out for top products descending
+            const opacity = 1.0 - (i * 0.08);
             return `rgba(255, 143, 93, ${Math.max(opacity, 0.15)})`;
         });
 
-        new Chart(document.getElementById('chart-products'), {
-            type: 'doughnut',
-            data: {
-                labels: prodLabels,
-                datasets: [{
-                    data: prodValues,
-                    backgroundColor: backgroundColors,
-                    borderColor: '#ffffff',
-                    borderWidth: 1.5
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: { boxWidth: 12, color: textMutedColor, font: { size: 10 } }
+        const prodCanvas = document.getElementById('chart-products');
+        if (prodCanvas) {
+            new Chart(prodCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: prodLabels,
+                    datasets: [{
+                        data: prodValues,
+                        backgroundColor: backgroundColors,
+                        borderColor: '#ffffff',
+                        borderWidth: 1.5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { boxWidth: 12, color: textMutedColor, font: { size: 10 } }
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
 
     // 4. Lead Conversion Funnel (Horizontal Bar Chart)
+    const funnel = data.funnel || { New: 0, Qualified: 0, Proposition: 0, Won: 0, dropoffs: {} };
     const funnelCounts = [
-        data.funnel.New,
-        data.funnel.Qualified,
-        data.funnel.Proposition,
-        data.funnel.Won
+        funnel.New || 0,
+        funnel.Qualified || 0,
+        funnel.Proposition || 0,
+        funnel.Won || 0
     ];
     const hasFunnelData = funnelCounts.some(c => c > 0);
 
+    const funnelSummaryBlock = document.getElementById('funnel-summary-block');
     if (!hasFunnelData) {
         renderEmptyPlaceholder('funnel-container', 'No leads currently in the pipeline.');
-        document.getElementById('funnel-summary-block').style.display = 'none';
+        if (funnelSummaryBlock) funnelSummaryBlock.style.display = 'none';
     } else {
-        new Chart(document.getElementById('chart-funnel'), {
-            type: 'bar',
-            data: {
-                labels: ['New', 'Qualified', 'Proposition', 'Won'],
-                datasets: [{
-                    label: 'Leads Count',
-                    data: funnelCounts,
-                    backgroundColor: [
-                        'rgba(255, 143, 93, 0.85)', // New (Coral Orange accent)
-                        'rgba(245, 158, 11, 0.85)', // Qualified (Yellow status color)
-                        'rgba(231, 111, 65, 0.85)', // Proposition (Strong Orange accent)
-                        'rgba(16, 185, 129, 0.85)'  // Won (Green status color)
-                    ],
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: {
-                    legend: { display: false }
+        const funnelCanvas = document.getElementById('chart-funnel');
+        if (funnelCanvas) {
+            new Chart(funnelCanvas, {
+                type: 'bar',
+                data: {
+                    labels: ['New', 'Qualified', 'Proposition', 'Won'],
+                    datasets: [{
+                        label: 'Leads Count',
+                        data: funnelCounts,
+                        backgroundColor: [
+                            'rgba(255, 143, 93, 0.85)',
+                            'rgba(245, 158, 11, 0.85)',
+                            'rgba(231, 111, 65, 0.85)',
+                            'rgba(16, 185, 129, 0.85)'
+                        ],
+                        borderRadius: 4
+                    }]
                 },
-                scales: {
-                    x: { grid: { color: gridLineColor }, ticks: { precision: 0, color: textMutedColor } },
-                    y: { grid: { color: 'transparent' }, ticks: { color: textMutedColor } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: gridLineColor }, ticks: { precision: 0, color: textMutedColor } },
+                        y: { grid: { color: 'transparent' }, ticks: { color: textMutedColor } }
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // Set funnel conversion metrics below
-        const drop = data.funnel.dropoffs;
-        
-        // Calculate step conversions (e.g. Qualified / New)
+        const drop = funnel.dropoffs || {};
         const calcConversion = (stageVal, prevVal) => {
-            if (prevVal === 0) return '0%';
-            return Math.round((stageVal / prevVal) * 100) + '%';
+            if (!prevVal || prevVal === 0) return '0%';
+            return Math.round(((stageVal || 0) / prevVal) * 100) + '%';
         };
 
-        document.getElementById('funnel-val-new-qual').textContent = calcConversion(data.funnel.Qualified, data.funnel.New);
-        document.getElementById('funnel-drop-new-qual').textContent = drop.New_to_Qualified + '% drop';
+        const fNewQual = document.getElementById('funnel-val-new-qual');
+        const fDropNewQual = document.getElementById('funnel-drop-new-qual');
+        const fQualProp = document.getElementById('funnel-val-qual-prop');
+        const fDropQualProp = document.getElementById('funnel-drop-qual-prop');
+        const fPropWon = document.getElementById('funnel-val-prop-won');
+        const fDropPropWon = document.getElementById('funnel-drop-prop-won');
 
-        document.getElementById('funnel-val-qual-prop').textContent = calcConversion(data.funnel.Proposition, data.funnel.Qualified);
-        document.getElementById('funnel-drop-qual-prop').textContent = drop.Qualified_to_Proposition + '% drop';
-
-        document.getElementById('funnel-val-prop-won').textContent = calcConversion(data.funnel.Won, data.funnel.Proposition);
-        document.getElementById('funnel-drop-prop-won').textContent = drop.Proposition_to_Won + '% drop';
+        if (fNewQual) fNewQual.textContent = calcConversion(funnel.Qualified, funnel.New);
+        if (fDropNewQual) fDropNewQual.textContent = (drop.New_to_Qualified || 0) + '% drop';
+        if (fQualProp) fQualProp.textContent = calcConversion(funnel.Proposition, funnel.Qualified);
+        if (fDropQualProp) fDropQualProp.textContent = (drop.Qualified_to_Proposition || 0) + '% drop';
+        if (fPropWon) fPropWon.textContent = calcConversion(funnel.Won, funnel.Proposition);
+        if (fDropPropWon) fDropPropWon.textContent = (drop.Proposition_to_Won || 0) + '% drop';
     }
 
     // 5. Average Deal Size Trend (Bar/Line Chart)
-    const dealLabels = data.deal_sizes.map(item => item.month);
-    const dealValues = data.deal_sizes.map(item => item.avg_deal_size);
+    const dealSizes = data.deal_sizes || [];
+    const dealLabels = dealSizes.map(item => item.month);
+    const dealValues = dealSizes.map(item => item.avg_deal_size);
     const hasDealData = dealValues.some(v => v > 0);
 
     if (!hasDealData) {
         renderEmptyPlaceholder('dealsize-container', 'No won opportunities to calculate average sizes.');
     } else {
-        new Chart(document.getElementById('chart-dealsize'), {
-            type: 'bar',
-            data: {
-                labels: dealLabels,
-                datasets: [{
-                    label: 'Avg Won Deal Value (AED)',
-                    data: dealValues,
-                    backgroundColor: orangeAccent,
-                    hoverBackgroundColor: orangeAccentHover,
-                    borderRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+        const dealCanvas = document.getElementById('chart-dealsize');
+        if (dealCanvas) {
+            new Chart(dealCanvas, {
+                type: 'bar',
+                data: {
+                    labels: dealLabels,
+                    datasets: [{
+                        label: 'Avg Won Deal Value (AED)',
+                        data: dealValues,
+                        backgroundColor: orangeAccent,
+                        hoverBackgroundColor: orangeAccentHover,
+                        borderRadius: 6
+                    }]
                 },
-                scales: {
-                    x: { grid: { color: 'transparent' }, ticks: { color: textMutedColor } },
-                    y: { grid: { color: gridLineColor }, ticks: { color: textMutedColor } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'transparent' }, ticks: { color: textMutedColor } },
+                        y: { grid: { color: gridLineColor }, ticks: { color: textMutedColor } }
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 });
 </script>

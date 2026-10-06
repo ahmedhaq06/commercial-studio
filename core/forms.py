@@ -1,5 +1,28 @@
 from django import forms
+from django.contrib.auth.forms import AuthenticationForm
 from .models import Product, Lead, Client, LeadInteraction
+
+
+class EmailOrUsernameAuthenticationForm(AuthenticationForm):
+    username = forms.CharField(
+        label="Email or Username",
+        widget=forms.TextInput(attrs={
+            "autofocus": True,
+            "class": "input-field",
+            "placeholder": "Enter your email or username",
+            "autocomplete": "username",
+        })
+    )
+    password = forms.CharField(
+        label="Password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            "class": "input-field",
+            "placeholder": "••••••••",
+            "autocomplete": "current-password",
+        })
+    )
+
 
 
 class ProductForm(forms.ModelForm):

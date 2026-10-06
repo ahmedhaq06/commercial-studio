@@ -24,8 +24,14 @@
     <input type="hidden" name="action" value="create">
 
     <p>
-      <label for="id_username">Username</label>
-      <input id="id_username" type="text" name="username" required>
+      <label for="id_username">Username <span style="color: var(--status-danger, #ef4444);">*</span></label>
+      <input id="id_username" type="text" name="username" required placeholder="e.g. jsmith">
+    </p>
+
+    <p>
+      <label for="id_email">Email Address (Optional)</label>
+      <input id="id_email" type="email" name="email" placeholder="user@company.com">
+      <small style="color: var(--muted); display: block; margin-top: 4px;">User can use this email to sign in.</small>
     </p>
 
     <p>

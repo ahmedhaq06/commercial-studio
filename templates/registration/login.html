@@ -1,16 +1,40 @@
 {% extends "base.html" %}
+{% block title %}Sign In — Lubricant Pricing Studio{% endblock %}
+
 {% block content %}
 <section class="auth-shell">
-  <div class="auth-panel">
+  <div class="auth-panel card">
     <div class="auth-copy">
       <p class="eyebrow">Secure access</p>
       <h1>Lubricant Pricing Studio</h1>
-      <p>Sign in to manage product records, update sales pricing, and export controlled pricing sheets for the team.</p>
+      <p>Sign in to manage product records, track sales CRM pipelines, and export controlled pricing sheets for the team.</p>
+      
+      <div style="margin-top: 1.5rem; padding: 0.85rem 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md, 8px); font-size: 0.85rem; color: var(--muted); line-height: 1.5;">
+        <strong style="color: var(--text); display: block; margin-bottom: 0.25rem;">✨ Case-Insensitive Sign In:</strong>
+        You can sign in using either your <strong>registered email address</strong> or your <strong>username</strong>. Capitalization does not matter.
+      </div>
     </div>
-    <form method="post" class="auth-form">
+
+    <form method="post" class="auth-form" style="display: flex; flex-direction: column; gap: 1rem;">
       {% csrf_token %}
-      {{ form.as_p }}
-      <button class="primary-button full-width" type="submit">Login</button>
+
+      {% if form.errors %}
+      <div class="errors" style="color: var(--status-danger, #ef4444); background: rgba(239, 68, 68, 0.08); padding: 0.75rem 1rem; border-radius: var(--radius-md, 8px); border: 1px solid var(--status-danger, #ef4444); font-size: 0.88rem; font-weight: 500;">
+        Invalid email/username or password. Please try again.
+      </div>
+      {% endif %}
+
+      <div>
+        <label for="{{ form.username.id_for_label }}" style="display: block; font-weight: 600; font-size: 0.85rem; color: var(--text); margin-bottom: 0.35rem;">Email or Username</label>
+        {{ form.username }}
+      </div>
+
+      <div>
+        <label for="{{ form.password.id_for_label }}" style="display: block; font-weight: 600; font-size: 0.85rem; color: var(--text); margin-bottom: 0.35rem;">Password</label>
+        {{ form.password }}
+      </div>
+
+      <button class="primary-button full-width" type="submit" style="margin-top: 0.5rem; padding: 0.7rem 1rem; font-size: 0.95rem; font-weight: 700; border-radius: var(--radius-md, 8px);">Sign In</button>
     </form>
   </div>
 </section>

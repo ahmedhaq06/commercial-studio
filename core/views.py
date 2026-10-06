@@ -461,6 +461,7 @@ def invite_people(request):
 
         if action == "create":
             username = (request.POST.get("username") or "").strip()
+            email = (request.POST.get("email") or "").strip()
             password = (request.POST.get("password") or "").strip()
             role = request.POST.get("role")
 
@@ -474,8 +475,10 @@ def invite_people(request):
             if not errors:
                 if User.objects.filter(username__iexact=username).exists():
                     errors.append("That username already exists")
+                elif email and User.objects.filter(email__iexact=email).exists():
+                    errors.append("A user with that email already exists")
                 else:
-                    created_user = User.objects.create_user(username=username, password=password)
+                    created_user = User.objects.create_user(username=username, email=email, password=password)
                     if role == "sales":
                         group, _ = Group.objects.get_or_create(name="Sales")
                         created_user.groups.add(group)
@@ -483,12 +486,14 @@ def invite_people(request):
                         group, _ = Group.objects.get_or_create(name="Production")
                         created_user.groups.add(group)
 
+                    email_line = f"Email: {email}\n" if email else ""
                     invite_text = (
-                        "Join our company's private collaborative Excel tool.\n\n"
+                        "Join our company's private collaborative pricing and sales studio.\n\n"
                         f"Login URL: {request.build_absolute_uri('/accounts/login/')}\n"
+                        f"{email_line}"
                         f"Username: {created_user.username}\n"
                         f"Password: {password}\n\n"
-                        "Use this account to access the workspace."
+                        "You can sign in using either your email or username (case-insensitive)."
                     )
 
         elif action == "delete":

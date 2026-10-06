@@ -151,3 +151,48 @@ class AnalyticsTests(TestCase):
         self.assertEqual(data['funnel']['New'], 0)
         self.assertEqual(data['funnel']['Qualified'], 1)
         self.assertEqual(data['funnel']['Won'], 1)
+
+
+class AuthenticationTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="AhmedHaq",
+            email="ahmed@example.com",
+            password="SecurePassword123!"
+        )
+
+    def test_login_with_exact_email(self):
+        login_success = self.client.login(username="ahmed@example.com", password="SecurePassword123!")
+        self.assertTrue(login_success)
+
+    def test_login_with_uppercase_email(self):
+        login_success = self.client.login(username="AHMED@EXAMPLE.COM", password="SecurePassword123!")
+        self.assertTrue(login_success)
+
+    def test_login_with_lowercase_username(self):
+        login_success = self.client.login(username="ahmedhaq", password="SecurePassword123!")
+        self.assertTrue(login_success)
+
+    def test_login_with_uppercase_username(self):
+        login_success = self.client.login(username="AHMEDHAQ", password="SecurePassword123!")
+        self.assertTrue(login_success)
+
+    def test_login_form_post_with_email(self):
+        response = self.client.post(reverse("login"), {
+            "username": "AHMED@EXAMPLE.COM",
+            "password": "SecurePassword123!",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "/")
+
+    def test_login_form_post_with_username_case_insensitive(self):
+        response = self.client.post(reverse("login"), {
+            "username": "ahmedhaq",
+            "password": "SecurePassword123!",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "/")
+
+    def test_login_with_invalid_password(self):
+        login_success = self.client.login(username="ahmed@example.com", password="WrongPassword")
+        self.assertFalse(login_success)

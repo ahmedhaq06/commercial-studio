@@ -122,6 +122,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
+AUTHENTICATION_BACKENDS = [
+    "core.backends.EmailOrUsernameModelBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+
 # CSRF settings for production
 CSRF_TRUSTED_ORIGINS = [
     'https://*.onrender.com',

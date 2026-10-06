@@ -1,32 +1,26 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from django.db.models import Q
 
 
-class EmailOrUsernameModelBackend(ModelBackend):
+class EmailModelBackend(ModelBackend):
     """
-    Custom authentication backend allowing users to sign in
-    using either their registered email address or their username,
-    both evaluated case-insensitively.
+    Authentication backend that authenticates users strictly by email address (case-insensitive).
+    Username authentication is not permitted.
     """
 
-    def authenticate(self, request, username=None, password=None, **kwargs):
+    def authenticate(self, request, username=None, password=None, email=None, **kwargs):
         UserModel = get_user_model()
-        if username is None:
-            username = kwargs.get(UserModel.USERNAME_FIELD) or kwargs.get("email")
+        email_val = email or username or kwargs.get("email") or kwargs.get(UserModel.USERNAME_FIELD)
 
-        if not username or not password:
+        if not email_val or not password:
             return None
 
-        identifier = str(username).strip()
-        if not identifier:
+        email_clean = str(email_val).strip()
+        if not email_clean:
             return None
 
-        # Case-insensitive match on username OR non-empty email
-        query = Q(username__iexact=identifier)
-        query |= (Q(email__iexact=identifier) & ~Q(email=""))
-
-        users = UserModel.objects.filter(query)
+        # Authenticate strictly by email address only
+        users = UserModel.objects.filter(email__iexact=email_clean).exclude(email="")
 
         for user in users:
             if user.check_password(password) and self.user_can_authenticate(user):

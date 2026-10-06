@@ -123,9 +123,9 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
 AUTHENTICATION_BACKENDS = [
-    "core.backends.EmailOrUsernameModelBackend",
-    "django.contrib.auth.backends.ModelBackend",
+    "core.backends.EmailModelBackend",
 ]
+
 
 
 # CSRF settings for production

@@ -3,14 +3,14 @@ from django.contrib.auth.forms import AuthenticationForm
 from .models import Product, Lead, Client, LeadInteraction
 
 
-class EmailOrUsernameAuthenticationForm(AuthenticationForm):
-    username = forms.CharField(
-        label="Email or Username",
-        widget=forms.TextInput(attrs={
+class EmailAuthenticationForm(AuthenticationForm):
+    username = forms.EmailField(
+        label="Email Address",
+        widget=forms.EmailInput(attrs={
             "autofocus": True,
             "class": "input-field",
-            "placeholder": "Enter your email or username",
-            "autocomplete": "username",
+            "placeholder": "name@company.com",
+            "autocomplete": "email",
         })
     )
     password = forms.CharField(
@@ -22,6 +22,7 @@ class EmailOrUsernameAuthenticationForm(AuthenticationForm):
             "autocomplete": "current-password",
         })
     )
+
 
 
 

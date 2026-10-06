@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User, Group
 from django.test import TestCase
 from django.urls import reverse
+import json
 
 from .models import ExportFile, Product, Lead
 
@@ -19,7 +20,7 @@ class ProductTests(TestCase):
 
 class ExportTests(TestCase):
     def test_export_creates_file_record(self):
-        user = User.objects.create_user(username="user", password="pass")
+        user = User.objects.create_user(username="user", email="user@example.com", password="pass")
         # Add user to Production group to pass access check
         group, _ = Group.objects.get_or_create(name="Production")
         user.groups.add(group)
@@ -31,7 +32,7 @@ class ExportTests(TestCase):
             production_price=100,
             profit_percent=15,
         )
-        self.client.login(username="user", password="pass")
+        self.client.login(username="user@example.com", password="pass")
         response = self.client.get(reverse("export_dashboard"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(ExportFile.objects.count(), 1)
@@ -44,16 +45,16 @@ class AccessControlTests(TestCase):
         self.prod_group, _ = Group.objects.get_or_create(name="Production")
 
         # Create users
-        self.sales_user = User.objects.create_user(username="sales_member", password="pass")
+        self.sales_user = User.objects.create_user(username="sales_member", email="sales@example.com", password="pass")
         self.sales_user.groups.add(self.sales_group)
 
-        self.prod_user = User.objects.create_user(username="prod_member", password="pass")
+        self.prod_user = User.objects.create_user(username="prod_member", email="prod@example.com", password="pass")
         self.prod_user.groups.add(self.prod_group)
 
-        self.admin_user = User.objects.create_user(username="Arshad al Haq", password="pass")
+        self.admin_user = User.objects.create_user(username="Arshad al Haq", email="admin@example.com", password="pass")
 
     def test_sales_user_access(self):
-        self.client.login(username="sales_member", password="pass")
+        self.client.login(username="sales@example.com", password="pass")
         
         # Sales user should be able to access CRM dashboard and CRM Analytics
         for url_name in ["crm_dashboard", "crm_analytics"]:
@@ -70,7 +71,7 @@ class AccessControlTests(TestCase):
         self.assertRedirects(response, reverse("dashboard"))
 
     def test_production_user_access(self):
-        self.client.login(username="prod_member", password="pass")
+        self.client.login(username="prod@example.com", password="pass")
 
         # Production user should be able to access products list
         response = self.client.get(reverse("products_list"))
@@ -86,7 +87,7 @@ class AccessControlTests(TestCase):
             self.assertRedirects(response, reverse("dashboard"))
 
     def test_admin_user_access(self):
-        self.client.login(username="Arshad al Haq", password="pass")
+        self.client.login(username="admin@example.com", password="pass")
 
         # Admin user should be able to access everything
         for url_name in ["crm_dashboard", "crm_analytics", "products_list", "pricing_list"]:
@@ -94,24 +95,22 @@ class AccessControlTests(TestCase):
             self.assertEqual(response.status_code, 200)
 
 
-import json
-
 class AnalyticsTests(TestCase):
     def setUp(self):
         self.sales_group, _ = Group.objects.get_or_create(name="Sales")
-        self.sales_user = User.objects.create_user(username="rep1", password="pass")
+        self.sales_user = User.objects.create_user(username="rep1", email="rep1@example.com", password="pass")
         self.sales_user.groups.add(self.sales_group)
         
         # Create a product
         self.product = Product.objects.create(
             sku="SKU-TEST",
             name="Testing Product",
-            quantity=10,
-            production_price=10,
+            quantity=100,
+            production_price=50,
             profit_percent=20
         )
         
-        # Create won lead
+        # Create won lead with quantity
         self.won_lead = Lead.objects.create(
             salesperson=self.sales_user,
             contact_name="Client Won",
@@ -132,7 +131,7 @@ class AnalyticsTests(TestCase):
         )
         
     def test_analytics_kpis_and_json(self):
-        self.client.login(username="rep1", password="pass")
+        self.client.login(username="rep1@example.com", password="pass")
         response = self.client.get(reverse("crm_analytics"))
         self.assertEqual(response.status_code, 200)
         
@@ -169,29 +168,27 @@ class AuthenticationTests(TestCase):
         login_success = self.client.login(username="AHMED@EXAMPLE.COM", password="SecurePassword123!")
         self.assertTrue(login_success)
 
-    def test_login_with_lowercase_username(self):
-        login_success = self.client.login(username="ahmedhaq", password="SecurePassword123!")
-        self.assertTrue(login_success)
-
-    def test_login_with_uppercase_username(self):
-        login_success = self.client.login(username="AHMEDHAQ", password="SecurePassword123!")
-        self.assertTrue(login_success)
+    def test_login_with_username_is_rejected(self):
+        # Username login must be rejected
+        login_success = self.client.login(username="AhmedHaq", password="SecurePassword123!")
+        self.assertFalse(login_success)
 
     def test_login_form_post_with_email(self):
         response = self.client.post(reverse("login"), {
-            "username": "AHMED@EXAMPLE.COM",
+            "username": "ahmed@example.com",
             "password": "SecurePassword123!",
         })
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, "/")
 
-    def test_login_form_post_with_username_case_insensitive(self):
+    def test_login_form_post_with_username_is_rejected(self):
+        # Submitting username on the login form fails authentication
         response = self.client.post(reverse("login"), {
-            "username": "ahmedhaq",
+            "username": "AhmedHaq",
             "password": "SecurePassword123!",
         })
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, "/")
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['user'].is_authenticated)
 
     def test_login_with_invalid_password(self):
         login_success = self.client.login(username="ahmed@example.com", password="WrongPassword")
